@@ -1,0 +1,209 @@
+
+import streamlit as st
+import pandas as pd
+
+st.set_page_config(
+    page_title="Shield Dashboard",
+    page_icon="🛡️",
+    layout="wide"
+)
+
+# ---------- DESIGN ----------
+st.markdown("""
+<style>
+.stApp {
+    background: #0b1020;
+    color: white;
+}
+[data-testid="stSidebar"] {
+    background: #111a30;
+}
+h1, h2, h3 {
+    color: #ffffff;
+}
+.metric-card {
+    background: #17243d;
+    padding: 20px;
+    border-radius: 14px;
+    border: 1px solid #304362;
+}
+.metric-number {
+    font-size: 30px;
+    font-weight: bold;
+    color: #83aaff;
+}
+.subtitle {
+    color: #aabbd5;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# ---------- SIDEBAR ----------
+st.sidebar.title("🛡️ SHIELD SYSTEMS")
+st.sidebar.caption("Unified Security Dashboard")
+
+page = st.sidebar.radio(
+    "NAVIGATION",
+    ["Overview", "BlackoutShield", "AutoShield", "Reports"]
+)
+
+st.sidebar.divider()
+st.sidebar.success("SYSTEM ONLINE")
+st.sidebar.caption("Hackathon Prototype")
+
+# ---------- OVERVIEW ----------
+if page == "Overview":
+
+    st.title("🛡️ BlackoutShield + AutoShield")
+    st.markdown(
+        '<p class="subtitle">One platform. Two intelligent protection modules.</p>',
+        unsafe_allow_html=True
+    )
+
+    st.divider()
+
+    c1, c2, c3 = st.columns(3)
+
+    with c1:
+        st.markdown("""
+        <div class="metric-card">
+        <p>MODULES</p>
+        <div class="metric-number">02</div>
+        <p>Protection systems</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with c2:
+        st.markdown("""
+        <div class="metric-card">
+        <p>STATUS</p>
+        <div class="metric-number">READY</div>
+        <p>Interface prototype</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with c3:
+        st.markdown("""
+        <div class="metric-card">
+        <p>PLATFORM</p>
+        <div class="metric-number">ACTIVE</div>
+        <p>Local demonstration</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.divider()
+
+    left, right = st.columns(2)
+
+    with left:
+        st.subheader("⚡ BlackoutShield")
+        st.write("Monitor essential services and simulate recovery during a power outage.")
+        if st.button("Open BlackoutShield"):
+            st.session_state.page = "BlackoutShield"
+            st.rerun()
+
+    with right:
+        st.subheader("🧹 AutoShield")
+        st.write("Validate data, identify errors and separate unsafe records.")
+        if st.button("Open AutoShield"):
+            st.session_state.page = "AutoShield"
+            st.rerun()
+
+    st.info("Select a module from the sidebar to explore its dashboard.")
+
+# ---------- BLACKOUTSHIELD ----------
+elif page == "BlackoutShield":
+
+    st.title("⚡ BlackoutShield")
+    st.caption("OUTAGE RECOVERY MANAGEMENT")
+
+    st.divider()
+
+    st.subheader("Service Monitoring")
+
+    services = pd.DataFrame({
+        "Service": ["Hospital", "Water Supply", "Emergency Wi-Fi",
+                    "Traffic Signals"],
+        "Priority": ["Critical", "Critical", "High", "Medium"],
+        "Status": ["Offline", "Offline", "Offline", "Offline"]
+    })
+
+    st.dataframe(services, use_container_width=True)
+
+    st.divider()
+
+    st.subheader("Backup Power Simulator")
+
+    power = st.slider(
+        "Available backup power (kW)",
+        1, 20, 8
+    )
+
+    st.write("Selected backup power:", power, "kW")
+
+    if st.button("Run Recovery Demo", type="primary"):
+        st.success("Demo recovery simulation started!")
+        st.write("Backup power budget:", power, "kW")
+        st.info("The actual recovery engine will be connected in the next development step.")
+
+# ---------- AUTOSHIELD ----------
+elif page == "AutoShield":
+
+    st.title("🧹 AutoShield")
+    st.caption("INTELLIGENT DATA QUALITY MANAGEMENT")
+
+    st.divider()
+
+    st.subheader("Upload Your Dataset")
+
+    file = st.file_uploader(
+        "Upload CSV file",
+        type=["csv"]
+    )
+
+    if file is not None:
+        try:
+            data = pd.read_csv(file)
+
+            st.success("Dataset uploaded successfully!")
+            st.subheader("Dataset Preview")
+            st.dataframe(data, use_container_width=True)
+
+            st.write("Total records:", len(data))
+
+            if st.button("Run Validation", type="primary"):
+                st.info("Validation interface is ready. The full data-cleaning engine will be connected next.")
+
+        except Exception as error:
+            st.error(f"Unable to read file: {error}")
+
+    else:
+        st.info("Upload a CSV file to begin.")
+
+    st.divider()
+
+    st.subheader("AutoShield Capabilities")
+
+    a, b, c = st.columns(3)
+
+    a.write("🔍 Data Validation")
+    b.write("🧹 Safe Data Repair")
+    c.write("🚨 Error Quarantine")
+
+# ---------- REPORTS ----------
+elif page == "Reports":
+
+    st.title("📊 Reports & Audit Logs")
+    st.caption("Review system activity and generated reports.")
+
+    st.info("Reports will appear here after connecting the two processing engines.")
+
+    st.subheader("Available Reports")
+
+    st.write("1. BlackoutShield Recovery Report")
+    st.write("2. AutoShield Validation Report")
+    st.write("3. Quarantined Records")
+    st.write("4. System Audit Log")
+
+st.divider()
+st.caption("BLACKOUTSHIELD + AUTOSHIELD | HACKATHON PROTOTYPE")
