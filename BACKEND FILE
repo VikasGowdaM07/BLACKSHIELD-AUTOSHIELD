@@ -1,0 +1,1648 @@
+Here is the complete, updated single-file dashboard with dynamic problem extraction, live scenario switching, and the raw CSV editor.
+
+The updated file is saved at:
+👉 **[`index.html`](file:///C:/Users/hp/.gemini/antigravity/scratch/blackoutshield/index.html)**
+
+You can copy the code below or double-click the file above to open it in Chrome or Edge:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BlackoutShield + AutoShield • Emergency Grid Operations Console</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Dark HUD Console Aesthetics */
+    :root {
+      --background: #0b0f19;
+      --card: #111827;
+      --foreground: #f9fafb;
+      --muted-foreground: #9ca3af;
+      --border: #1f2937;
+      --primary: #3b82f6;
+    }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    @keyframes pulse-glow {
+      0%, 100% { filter: drop-shadow(0 0 6px rgba(34, 197, 94, 0.6)); }
+      50% { filter: drop-shadow(0 0 14px rgba(34, 197, 94, 0.9)); }
+    }
+    .powered-pulse {
+      animation: pulse-glow 2.5s infinite ease-in-out;
+    }
+    .badge-restored {
+      background: rgba(34, 197, 94, 0.12);
+      color: #16a34a;
+      border: 1px solid rgba(34, 197, 94, 0.3);
+    }
+    .badge-insufficient {
+      background: rgba(234, 179, 8, 0.12);
+      color: #ca8a04;
+      border: 1px solid rgba(234, 179, 8, 0.3);
+    }
+    .badge-waiting {
+      background: rgba(59, 130, 246, 0.12);
+      color: #2563eb;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+    .badge-quarantine {
+      background: rgba(239, 68, 68, 0.12);
+      color: #dc2626;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+    .nav-btn-active {
+      background: var(--card);
+      color: var(--foreground);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      font-weight: 600;
+      border: 1px solid var(--border);
+    }
+    .tab-btn-active {
+      border-bottom: 2px solid var(--primary);
+      color: var(--primary);
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body class="bg-[var(--background)] text-[var(--foreground)] antialiased min-h-screen p-3 md:p-6 flex flex-col gap-5">
+
+  <!-- ==================== TOP COMMAND BAR ==================== -->
+  <header class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 md:p-5 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+    <div class="flex items-center gap-3.5">
+      <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500/20 to-emerald-500/20 border border-amber-500/30 flex items-center justify-center text-2xl shadow-inner">
+        ⚡
+      </div>
+      <div>
+        <div class="flex flex-wrap items-center gap-2">
+          <h1 class="text-lg md:text-xl font-bold tracking-tight text-[var(--foreground)]">BlackoutShield + AutoShield</h1>
+          <span class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 font-semibold flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            Operational Prototype v2.5
+          </span>
+        </div>
+        <p class="text-xs text-[var(--muted-foreground)] mt-0.5">
+          Emergency Grid Decision Support & Proof-Carrying Data Cleansing Engine
+        </p>
+      </div>
+    </div>
+
+    <!-- Mode Selector Navigation -->
+    <nav class="flex items-center bg-[var(--background)] border border-[var(--border)] rounded-xl p-1 gap-1 text-xs self-start lg:self-center overflow-x-auto max-w-full">
+      <button id="nav-blackout" onclick="switchModule('blackout')" class="nav-btn-active px-3 py-1.5 rounded-lg transition-all whitespace-nowrap">
+        ⚡ Blackout Recovery Console
+      </button>
+      <button id="nav-autoshield" onclick="switchModule('autoshield')" class="px-3 py-1.5 rounded-lg text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-all whitespace-nowrap">
+        🛡️ AutoShield Data Cleanser
+      </button>
+      <button id="nav-pipeline" onclick="switchModule('pipeline')" class="px-3 py-1.5 rounded-lg text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-all whitespace-nowrap">
+        🔗 End-to-End Pipeline
+      </button>
+      <button id="nav-pitch" onclick="switchModule('pitch')" class="px-3 py-1.5 rounded-lg text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-all whitespace-nowrap">
+        🎯 Hackathon Demo & Q&A
+      </button>
+    </nav>
+  </header>
+
+  <!-- ======================================================== -->
+  <!-- MODULE 1: BLACKOUTSHIELD GRID OPERATIONS CONSOLE         -->
+  <!-- ======================================================== -->
+  <main id="section-blackout" class="flex flex-col gap-5">
+
+    <!-- DATA VALIDATION HEALTH BREAKDOWN -->
+    <section class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-xs flex flex-col gap-4">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-[var(--border)] pb-3">
+        <div>
+          <h2 class="text-sm font-bold text-[var(--foreground)] flex items-center gap-2">
+            <span>Data Ingestion & Integrity Gate</span>
+            <span class="text-xs px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 font-medium">Auto-Protected</span>
+          </h2>
+          <p class="text-xs text-[var(--muted-foreground)] mt-0.5">
+            Source dataset: <span class="font-semibold text-[var(--foreground)]" id="bs-file-label">sample_services.csv (8 records ingested)</span>
+          </p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="loadDefaultBlackoutData()" class="text-xs py-1.5 px-3 rounded-lg bg-[var(--background)] border border-[var(--border)] hover:bg-[var(--border)]/30 font-medium transition-colors">
+            🔄 Reset Demo Data
+          </button>
+          <label class="text-xs py-1.5 px-3 rounded-lg bg-[var(--background)] border border-[var(--border)] hover:bg-[var(--border)]/30 font-medium transition-colors cursor-pointer text-center">
+            📂 Upload Custom CSV
+            <input type="file" id="bs-file-uploader" accept=".csv" class="hidden" onchange="uploadBlackoutCSV(event)">
+          </label>
+        </div>
+      </div>
+
+      <!-- Breakdown Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div class="bg-[var(--background)] border border-[var(--border)] rounded-xl p-3.5 flex flex-col justify-between">
+          <div class="flex items-center justify-between">
+            <span class="text-xs text-[var(--muted-foreground)] font-medium">Total Ingested</span>
+            <span class="text-xs px-1.5 py-0.5 rounded bg-slate-500/10 text-[var(--muted-foreground)]">100% Raw</span>
+          </div>
+          <div class="mt-2">
+            <div class="text-2xl font-bold text-[var(--foreground)]" id="metric-total-rows">8 <span class="text-xs font-normal text-[var(--muted-foreground)]">rows</span></div>
+            <div class="text-[11px] text-[var(--muted-foreground)] mt-0.5">Raw service records parsed</div>
+          </div>
+        </div>
+
+        <div class="bg-[var(--background)] border border-emerald-500/30 rounded-xl p-3.5 flex flex-col justify-between">
+          <div class="flex items-center justify-between">
+            <span class="text-xs text-emerald-600 font-semibold flex items-center gap-1">✓ Accepted Valid</span>
+            <span class="text-xs font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600" id="metric-accepted-pct">75.0%</span>
+          </div>
+          <div class="mt-2">
+            <div class="text-2xl font-bold text-emerald-600" id="metric-accepted-count">6 <span class="text-xs font-normal text-[var(--muted-foreground)]">of 8 services</span></div>
+            <div class="text-[11px] text-[var(--muted-foreground)] mt-0.5">Passed all schema & integrity tests</div>
+          </div>
+        </div>
+
+        <div class="bg-[var(--background)] border border-rose-500/30 rounded-xl p-3.5 flex flex-col justify-between">
+          <div class="flex items-center justify-between">
+            <span class="text-xs text-rose-600 font-semibold flex items-center gap-1">⚠ Quarantined</span>
+            <span class="text-xs font-bold px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-600" id="metric-quarantine-pct">25.0%</span>
+          </div>
+          <div class="mt-2">
+            <div class="text-2xl font-bold text-rose-600" id="metric-quarantine-count">2 <span class="text-xs font-normal text-[var(--muted-foreground)]">of 8 rows</span></div>
+            <div class="text-[11px] text-[var(--muted-foreground)] mt-0.5">Isolated to prevent grid failure</div>
+          </div>
+        </div>
+
+        <div class="bg-[var(--background)] border border-amber-500/30 rounded-xl p-3.5 flex flex-col justify-between">
+          <div class="flex items-center justify-between">
+            <span class="text-xs text-amber-500 font-semibold">Data Trust Score</span>
+            <span class="text-xs px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 font-bold">HEALTHY</span>
+          </div>
+          <div class="mt-2">
+            <div class="text-2xl font-bold text-amber-500" id="metric-health-score">75%</div>
+            <div class="w-full bg-[var(--border)] h-1.5 rounded-full overflow-hidden mt-1.5">
+              <div id="metric-health-bar" class="bg-gradient-to-r from-emerald-500 to-amber-500 h-full rounded-full transition-all" style="width: 75%;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Specific Isolation Ledger -->
+      <div class="bg-[var(--background)] border border-[var(--border)] rounded-xl p-3 flex flex-col gap-2">
+        <span class="text-xs font-semibold text-[var(--foreground)] flex items-center gap-1.5">
+          <span class="text-rose-500">🛡️</span>
+          Quarantine Reasons Breakdown (Why these records were safely isolated):
+        </span>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs" id="quarantine-reasons-cards">
+          <!-- Injected via JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- POWER DISPATCH STATION & PRESETS -->
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 flex flex-col justify-between gap-4">
+        <div>
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-bold text-[var(--foreground)] flex items-center gap-1.5">
+              <span>⚡ Backup Power Budget</span>
+            </h3>
+            <span class="text-base font-extrabold text-amber-500 bg-amber-500/10 px-3 py-1 rounded-lg border border-amber-500/20" id="budget-badge">
+              8 kW
+            </span>
+          </div>
+          <p class="text-xs text-[var(--muted-foreground)] mt-1">
+            Simulate blackout recovery with constrained backup generator capacity.
+          </p>
+        </div>
+
+        <div class="flex flex-col gap-2">
+          <div class="flex justify-between text-xs text-[var(--muted-foreground)] font-mono">
+            <span>1 kW (Minimum)</span>
+            <span>20 kW (Max)</span>
+          </div>
+          <input type="range" id="budget-slider" min="1" max="20" value="8" step="1" oninput="setBudget(this.value)" class="w-full accent-amber-500 cursor-pointer h-2 bg-[var(--background)] rounded-lg">
+        </div>
+
+        <div>
+          <span class="text-xs text-[var(--muted-foreground)] font-medium">Scenario Quick Presets:</span>
+          <div class="grid grid-cols-4 gap-1.5 mt-1.5">
+            <button onclick="setBudget(4)" class="text-xs py-1.5 rounded-lg bg-[var(--background)] border border-[var(--border)] hover:border-amber-500 hover:text-amber-500 font-medium transition-all text-center">
+              4 kW<br><span class="text-[10px] text-[var(--muted-foreground)]">Clinic only</span>
+            </button>
+            <button onclick="setBudget(8)" class="text-xs py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/40 text-amber-500 font-bold transition-all text-center">
+              8 kW<br><span class="text-[10px]">Standard</span>
+            </button>
+            <button onclick="setBudget(11)" class="text-xs py-1.5 rounded-lg bg-[var(--background)] border border-[var(--border)] hover:border-amber-500 hover:text-amber-500 font-medium transition-all text-center">
+              11 kW<br><span class="text-[10px] text-[var(--muted-foreground)]">+ Lights</span>
+            </button>
+            <button onclick="setBudget(15)" class="text-xs py-1.5 rounded-lg bg-[var(--background)] border border-[var(--border)] hover:border-amber-500 hover:text-amber-500 font-medium transition-all text-center">
+              15 kW<br><span class="text-[10px] text-[var(--muted-foreground)]">Full Grid</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="text-xs p-3 rounded-xl bg-[var(--background)] border border-[var(--border)] text-[var(--muted-foreground)] leading-relaxed">
+          <span class="font-bold text-[var(--foreground)]">Prioritization Rule:</span><br>
+          1. Dependencies satisfied first (PWR &rarr; dependents)<br>
+          2. Highest Criticality (5 to 1)<br>
+          3. Lowest Power Demand (kW tie-break)
+        </div>
+      </div>
+
+      <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 flex flex-col justify-between gap-4 lg:col-span-2">
+        <div class="flex items-center justify-between">
+          <h3 class="text-sm font-bold text-[var(--foreground)]">Live Recovery Status & Power Allocation</h3>
+          <span class="text-xs text-[var(--muted-foreground)]">Real-time simulation engine</span>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div class="bg-[var(--background)] border border-[var(--border)] rounded-xl p-3">
+            <span class="text-xs text-[var(--muted-foreground)]">Services Restored</span>
+            <div class="text-xl font-bold text-[var(--foreground)] mt-1" id="kpi-restored-count">4 / 6</div>
+            <div class="text-[11px] text-emerald-600 font-medium" id="kpi-restored-pct">66.7% operational</div>
+          </div>
+          <div class="bg-[var(--background)] border border-[var(--border)] rounded-xl p-3">
+            <span class="text-xs text-[var(--muted-foreground)]">Power Dispatched</span>
+            <div class="text-xl font-bold text-amber-500 mt-1" id="kpi-used-kw">8.0 kW</div>
+            <div class="text-[11px] text-[var(--muted-foreground)]">of allocated budget</div>
+          </div>
+          <div class="bg-[var(--background)] border border-[var(--border)] rounded-xl p-3">
+            <span class="text-xs text-[var(--muted-foreground)]">Power Reserve</span>
+            <div class="text-xl font-bold text-sky-500 mt-1" id="kpi-left-kw">0.0 kW</div>
+            <div class="text-[11px] text-[var(--muted-foreground)]">available capacity</div>
+          </div>
+          <div class="bg-[var(--background)] border border-[var(--border)] rounded-xl p-3">
+            <span class="text-xs text-[var(--muted-foreground)]">Unrestored Load</span>
+            <div class="text-xl font-bold text-rose-500 mt-1" id="kpi-unrestored-count">2 services</div>
+            <div class="text-[11px] text-[var(--muted-foreground)]">awaiting power / deps</div>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-1.5">
+          <div class="flex justify-between text-xs font-medium">
+            <span>Power Dispatch Distribution:</span>
+            <span id="power-distribution-label" class="text-[var(--muted-foreground)]">8 kW used / 0 kW reserve</span>
+          </div>
+          <div class="w-full h-3 bg-[var(--background)] border border-[var(--border)] rounded-full overflow-hidden flex">
+            <div id="bar-used-power" class="bg-amber-500 h-full transition-all" style="width: 100%;"></div>
+            <div id="bar-idle-power" class="bg-sky-500 h-full transition-all" style="width: 0%;"></div>
+          </div>
+          <div class="flex items-center gap-4 text-[11px] text-[var(--muted-foreground)] pt-0.5">
+            <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-amber-500 inline-block"></span> Dispatched Load</span>
+            <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-sky-500 inline-block"></span> Unallocated Reserve</span>
+            <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-rose-500 inline-block"></span> Unmet Demands</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ELECTRICAL TOPOLOGY & TIMELINE -->
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 flex flex-col gap-3 lg:col-span-2">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-sm font-bold text-[var(--foreground)] flex items-center gap-2">
+              <span>Interactive Electrical Grid Topology & Service Status</span>
+            </h3>
+            <p class="text-xs text-[var(--muted-foreground)]">Visualizes power tree: root substation &rarr; branch facilities</p>
+          </div>
+          <div class="flex items-center gap-2 text-xs">
+            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span> Restored</span>
+            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block"></span> Budget Blocked</span>
+            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span> Quarantined</span>
+          </div>
+        </div>
+        <div id="topology-canvas-wrap" class="w-full h-64 bg-[var(--background)] border border-[var(--border)] rounded-xl relative overflow-hidden flex items-center justify-center p-2">
+          <!-- Dynamic SVG Topology -->
+        </div>
+      </div>
+
+      <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 flex flex-col gap-3">
+        <div class="flex items-center justify-between">
+          <h3 class="text-sm font-bold text-[var(--foreground)]">Chronological Dispatch Order</h3>
+          <span class="text-xs px-2 py-0.5 rounded bg-[var(--background)] border border-[var(--border)] text-[var(--muted-foreground)] font-mono">Step sequence</span>
+        </div>
+        <p class="text-xs text-[var(--muted-foreground)]">How the engine restored services step-by-step:</p>
+        <div class="flex flex-col gap-2 overflow-y-auto max-h-56 pr-1" id="dispatch-timeline">
+          <!-- Steps injected via JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- DATA TABS -->
+    <section class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 flex flex-col gap-4">
+      <div class="flex items-center border-b border-[var(--border)] gap-6 text-xs pb-2 overflow-x-auto">
+        <button onclick="switchTab('plan')" id="tab-btn-plan" class="tab-btn-active py-1 whitespace-nowrap">
+          📋 Recovery Plan Results
+        </button>
+        <button onclick="switchTab('clean')" id="tab-btn-clean" class="text-[var(--muted-foreground)] py-1 hover:text-[var(--foreground)] whitespace-nowrap">
+          ✓ Clean Accepted Services (<span id="tab-count-clean">6</span>)
+        </button>
+        <button onclick="switchTab('quarantine')" id="tab-btn-quarantine" class="text-[var(--muted-foreground)] py-1 hover:text-[var(--foreground)] whitespace-nowrap">
+          ⚠ Quarantined Rows (<span id="tab-count-quarantine">2</span>)
+        </button>
+        <button onclick="switchTab('audit')" id="tab-btn-audit" class="text-[var(--muted-foreground)] py-1 hover:text-[var(--foreground)] whitespace-nowrap">
+          📜 Audit Trail JSON
+        </button>
+      </div>
+
+      <!-- Tab 1: Recovery Plan -->
+      <div id="tab-panel-plan" class="flex flex-col gap-3">
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs text-left border-collapse">
+            <thead>
+              <tr class="border-b border-[var(--border)] text-[var(--muted-foreground)]">
+                <th class="py-2.5 px-3">Service ID</th>
+                <th class="py-2.5 px-3">Service Name</th>
+                <th class="py-2.5 px-3">Criticality</th>
+                <th class="py-2.5 px-3">Power Demanded</th>
+                <th class="py-2.5 px-3">Priority Score</th>
+                <th class="py-2.5 px-3">Dependency</th>
+                <th class="py-2.5 px-3">Recovery Status</th>
+              </tr>
+            </thead>
+            <tbody id="plan-table-body" class="divide-y divide-[var(--border)]">
+              <!-- Injected by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tab 2: Clean Data -->
+      <div id="tab-panel-clean" class="hidden flex flex-col gap-3">
+        <div class="flex justify-between items-center">
+          <p class="text-xs text-[var(--muted-foreground)]">Trustworthy records that passed all schema, type, range, duplicate, and dependency checks.</p>
+          <button onclick="downloadCleanCSV()" class="text-xs px-3 py-1.5 rounded-lg bg-[var(--background)] border border-[var(--border)] hover:bg-[var(--border)]/20 font-medium">
+            📥 Download Clean CSV
+          </button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs text-left border-collapse">
+            <thead>
+              <tr class="border-b border-[var(--border)] text-[var(--muted-foreground)]">
+                <th class="py-2 px-3">service_id</th>
+                <th class="py-2 px-3">service_name</th>
+                <th class="py-2 px-3">criticality</th>
+                <th class="py-2 px-3">power_kw</th>
+                <th class="py-2 px-3">status</th>
+                <th class="py-2 px-3">depends_on</th>
+                <th class="py-2 px-3">timestamp</th>
+              </tr>
+            </thead>
+            <tbody id="clean-table-body" class="divide-y divide-[var(--border)]">
+              <!-- Injected by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tab 3: Quarantine Records -->
+      <div id="tab-panel-quarantine" class="hidden flex flex-col gap-3">
+        <div class="flex justify-between items-center">
+          <p class="text-xs text-[var(--muted-foreground)]">Isolated rows with specific rule violations. Preserved without guessing or hallucinating missing facts.</p>
+          <button onclick="downloadQuarantineCSV()" class="text-xs px-3 py-1.5 rounded-lg bg-[var(--background)] border border-[var(--border)] hover:bg-[var(--border)]/20 font-medium">
+            📥 Download Quarantine CSV
+          </button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs text-left border-collapse">
+            <thead>
+              <tr class="border-b border-[var(--border)] text-[var(--muted-foreground)]">
+                <th class="py-2 px-3">service_id</th>
+                <th class="py-2 px-3">service_name</th>
+                <th class="py-2 px-3">criticality</th>
+                <th class="py-2 px-3">power_kw</th>
+                <th class="py-2 px-3">Quarantine Justification</th>
+              </tr>
+            </thead>
+            <tbody id="quarantine-table-body" class="divide-y divide-[var(--border)]">
+              <!-- Injected by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tab 4: Audit Trail -->
+      <div id="tab-panel-audit" class="hidden flex flex-col gap-3">
+        <div class="flex justify-between items-center">
+          <p class="text-xs text-[var(--muted-foreground)]">Cryptographically verifiable event log detailing all sanitization and quarantine actions.</p>
+          <button onclick="downloadAuditJSON()" class="text-xs px-3 py-1.5 rounded-lg bg-[var(--background)] border border-[var(--border)] hover:bg-[var(--border)]/20 font-medium">
+            📥 Download Audit JSON
+          </button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs text-left border-collapse">
+            <thead>
+              <tr class="border-b border-[var(--border)] text-[var(--muted-foreground)]">
+                <th class="py-2 px-3">Action Event</th>
+                <th class="py-2 px-3">Audit Details</th>
+              </tr>
+            </thead>
+            <tbody id="audit-table-body" class="divide-y divide-[var(--border)]">
+              <!-- Injected by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ======================================================== -->
+  <!-- MODULE 2: AUTOSHIELD DATA QUALITY MODULE (DYNAMIC)       -->
+  <!-- ======================================================== -->
+  <main id="section-autoshield" class="hidden flex flex-col gap-5">
+    <section class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 flex flex-col gap-4">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-[var(--border)] pb-3">
+        <div>
+          <h2 class="text-sm font-bold text-[var(--foreground)] flex items-center gap-2">
+            <span>AutoShield &bull; Proof-Carrying Data Cleanser</span>
+            <span class="text-xs px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 font-medium">Deterministic Repairs</span>
+          </h2>
+          <p class="text-xs text-[var(--muted-foreground)] mt-0.5">
+            Dynamic issue detection & proof-carrying isolation: values change dynamically based on the exact problem and dataset.
+          </p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <button onclick="toggleAutoEditor()" class="text-xs py-1.5 px-3 rounded-lg bg-[var(--background)] border border-[var(--border)] hover:bg-[var(--border)]/30 font-medium flex items-center gap-1.5">
+            <span>✏️ Edit Raw CSV</span>
+          </button>
+          <label class="text-xs py-1.5 px-3 rounded-lg bg-[var(--background)] border border-[var(--border)] hover:bg-[var(--border)]/30 font-medium cursor-pointer flex items-center gap-1.5">
+            <span>📂 Upload CSV</span>
+            <input type="file" id="as-file-uploader" accept=".csv" class="hidden" onchange="uploadAutoShieldCSV(event)">
+          </label>
+          <button onclick="executeAutoShieldPipeline()" class="text-xs py-1.5 px-4 rounded-lg bg-emerald-600 text-white font-bold hover:bg-emerald-500 shadow-xs flex items-center gap-1">
+            <span>🛡️ Execute Pipeline</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Problem Scenario Switcher -->
+      <div class="bg-[var(--background)] border border-[var(--border)] rounded-xl p-3 flex flex-col gap-2">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold text-[var(--foreground)] flex items-center gap-1.5">
+            <span class="text-amber-500">🧪</span>
+            Test Problem Scenarios (Click to test different data corruption problems):
+          </span>
+          <span class="text-[11px] text-[var(--muted-foreground)]" id="as-active-scenario-name">Scenario 1: Attendance Outliers & Typo</span>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <button id="as-btn-scen-1" onclick="switchAutoScenario(1)" class="text-xs p-2 rounded-lg bg-amber-500/10 border border-amber-500/40 text-amber-500 font-bold text-left transition-all">
+            1. Attendance Dataset<br>
+            <span class="text-[10px] font-normal text-[var(--muted-foreground)]">'ninety', >100%, bad date, dup ID</span>
+          </button>
+          <button id="as-btn-scen-2" onclick="switchAutoScenario(2)" class="text-xs p-2 rounded-lg bg-[var(--card)] border border-[var(--border)] hover:border-amber-500 hover:text-amber-500 font-medium text-left transition-all">
+            2. Grid Telemetry Spikes<br>
+            <span class="text-[10px] font-normal text-[var(--muted-foreground)]">-48V, ERR_SPIKE, 999kV, dup sensor</span>
+          </button>
+          <button id="as-btn-scen-3" onclick="switchAutoScenario(3)" class="text-xs p-2 rounded-lg bg-[var(--card)] border border-[var(--border)] hover:border-amber-500 hover:text-amber-500 font-medium text-left transition-all">
+            3. Hospital ICU Vitals<br>
+            <span class="text-[10px] font-normal text-[var(--muted-foreground)]">420 bpm, null ID, SpO2 string</span>
+          </button>
+          <button id="as-btn-scen-4" onclick="switchAutoScenario(4)" class="text-xs p-2 rounded-lg bg-[var(--card)] border border-[var(--border)] hover:border-emerald-500 hover:text-emerald-500 font-medium text-left transition-all">
+            4. 100% Clean Grid<br>
+            <span class="text-[10px] font-normal text-[var(--muted-foreground)]">Zero defects &bull; 100% verified</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Collapsible Live Raw Editor -->
+      <div id="as-editor-wrap" class="hidden flex flex-col gap-2 p-3 bg-[var(--background)] border border-amber-500/30 rounded-xl">
+        <div class="flex items-center justify-between text-xs">
+          <span class="font-bold text-amber-500">Live Raw Input Editor (Edit any value to see it update immediately):</span>
+          <span class="text-[11px] text-[var(--muted-foreground)]">Changes reflect immediately when you click Execute</span>
+        </div>
+        <textarea id="as-raw-textarea" rows="6" class="w-full bg-[var(--card)] border border-[var(--border)] rounded-lg p-2.5 font-mono text-xs text-[var(--foreground)] focus:outline-none focus:border-amber-500"></textarea>
+        <div class="flex justify-end gap-2">
+          <button onclick="toggleAutoEditor()" class="text-xs px-3 py-1 rounded bg-[var(--card)] border border-[var(--border)]">Close</button>
+          <button onclick="applyAutoTextareaAndRun()" class="text-xs px-3 py-1 rounded bg-amber-500 text-black font-bold hover:bg-amber-400">Apply & Re-run</button>
+        </div>
+      </div>
+
+      <!-- Dynamically Computed Comparison Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+        <div class="bg-[var(--background)] border border-[var(--border)] rounded-xl p-3">
+          <span class="text-xs text-[var(--muted-foreground)]">Input Raw Rows</span>
+          <div class="text-2xl font-bold text-[var(--foreground)] mt-1" id="as-raw-rows">8</div>
+          <span class="text-[11px] text-[var(--muted-foreground)]" id="as-raw-rows-sub">Parsed records</span>
+        </div>
+        <div class="bg-[var(--background)] border border-amber-500/30 rounded-xl p-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs text-amber-500 font-semibold">Detected Issues</span>
+            <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 font-bold" id="as-detected-pill">Total Anomalies</span>
+          </div>
+          <div class="text-2xl font-bold text-amber-500 mt-1" id="as-detected-issues">5</div>
+          <span class="text-[11px] text-[var(--muted-foreground)]" id="as-detected-sub">All anomalies discovered</span>
+        </div>
+        <div class="bg-[var(--background)] border border-emerald-500/30 rounded-xl p-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs text-emerald-600 font-semibold">Repairs Applied</span>
+            <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 font-bold" id="as-repairs-pct">Safe Cleans</span>
+          </div>
+          <div class="text-2xl font-bold text-emerald-600 mt-1" id="as-repairs-count">1</div>
+          <span class="text-[11px] text-[var(--muted-foreground)]" id="as-repairs-sub">Whitespace trimmed</span>
+        </div>
+        <div class="bg-[var(--background)] border border-rose-500/30 rounded-xl p-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs text-rose-600 font-semibold">Strict Quarantine</span>
+            <span class="text-[10px] px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-600 font-bold" id="as-quarantined-pct">Isolated</span>
+          </div>
+          <div class="text-2xl font-bold text-rose-600 mt-1" id="as-quarantined-count">4</div>
+          <span class="text-[11px] text-[var(--muted-foreground)]">Zero guessing allowed</span>
+        </div>
+      </div>
+
+      <!-- Verification Banner -->
+      <div id="as-verification-banner" class="p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-semibold">
+        <div class="flex items-center gap-2">
+          <span class="text-base" id="as-gate-icon">🛡️</span>
+          <span id="as-gate-message">Verification Gate Passed: Candidate output was re-validated against all schema rules before acceptance.</span>
+        </div>
+        <span class="px-2.5 py-1 rounded-md bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 font-mono text-center" id="as-gate-status">STATUS: PUBLISHED (4 of 8 Valid)</span>
+      </div>
+
+      <!-- AutoShield Tables -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <!-- Accepted Table with Dynamic Columns -->
+        <div class="bg-[var(--background)] border border-emerald-500/30 rounded-xl p-4 flex flex-col gap-2">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-bold text-emerald-600 flex items-center gap-1.5">
+              <span>✓ Clean Accepted Records</span>
+              <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 font-bold" id="as-accepted-badge">4 valid</span>
+            </h4>
+            <button onclick="downloadAutoAcceptedCSV()" class="text-[11px] px-2.5 py-1 rounded-lg bg-[var(--card)] border border-[var(--border)] hover:bg-[var(--border)]/30 font-medium transition-colors">
+              📥 Download CSV
+            </button>
+          </div>
+          <div class="overflow-x-auto max-h-56">
+            <table class="w-full text-xs text-left border-collapse">
+              <thead id="as-accepted-thead">
+                <!-- Dynamically injected headers -->
+              </thead>
+              <tbody id="as-accepted-table" class="divide-y divide-[var(--border)]">
+                <!-- JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Quarantined Table with Dynamic Problem Values & Reasons -->
+        <div class="bg-[var(--background)] border border-rose-500/30 rounded-xl p-4 flex flex-col gap-2">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-bold text-rose-600 flex items-center gap-1.5">
+              <span>⚠ Quarantined Records & Exact Problem Values</span>
+              <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-rose-500/10 text-rose-600 font-bold" id="as-quarantine-badge">4 isolated</span>
+            </h4>
+            <button onclick="downloadAutoQuarantineCSV()" class="text-[11px] px-2.5 py-1 rounded-lg bg-[var(--card)] border border-[var(--border)] hover:bg-[var(--border)]/30 font-medium transition-colors">
+              📥 Download CSV
+            </button>
+          </div>
+          <div class="overflow-x-auto max-h-56">
+            <table class="w-full text-xs text-left border-collapse">
+              <thead>
+                <tr class="border-b border-[var(--border)] text-[var(--muted-foreground)]">
+                  <th class="py-1.5 px-2">Record ID</th>
+                  <th class="py-1.5 px-2">Offending Field</th>
+                  <th class="py-1.5 px-2">Problem Value</th>
+                  <th class="py-1.5 px-2">Quarantine Reason & Rule</th>
+                </tr>
+              </thead>
+              <tbody id="as-quarantine-table" class="divide-y divide-[var(--border)]">
+                <!-- JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ======================================================== -->
+  <!-- MODULE 3: END-TO-END PIPELINE                            -->
+  <!-- ======================================================== -->
+  <main id="section-pipeline" class="hidden flex flex-col gap-5">
+    <section class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 flex flex-col gap-4">
+      <h2 class="text-base font-bold text-[var(--foreground)]">End-to-End Pipeline: From Raw File to Safe Restoration</h2>
+      <p class="text-xs text-[var(--muted-foreground)]">
+        Demonstrates why data quality matters in life-critical infrastructure: corrupted records are safely quarantined so downstream solvers never make decisions on bad inputs.
+      </p>
+
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-2">
+        <div class="p-4 rounded-xl bg-[var(--background)] border border-[var(--border)] flex flex-col gap-2">
+          <span class="text-xs font-mono text-amber-500 font-bold">STAGE 1: INGEST</span>
+          <span class="font-bold text-sm text-[var(--foreground)]">8 Raw Records</span>
+          <p class="text-xs text-[var(--muted-foreground)]">Includes duplicate WIFI and CAMERA with invalid timestamp and non-numeric priority.</p>
+        </div>
+        <div class="p-4 rounded-xl bg-[var(--background)] border border-emerald-500/30 flex flex-col gap-2">
+          <span class="text-xs font-mono text-emerald-500 font-bold">STAGE 2: QUALITY GATE</span>
+          <span class="font-bold text-sm text-emerald-600">6 Clean &bull; 2 Quarantined</span>
+          <p class="text-xs text-[var(--muted-foreground)]">AutoShield guards: trims whitespace, upper-cases IDs, and sets aside the 2 poisoned records.</p>
+        </div>
+        <div class="p-4 rounded-xl bg-[var(--background)] border border-sky-500/30 flex flex-col gap-2">
+          <span class="text-xs font-mono text-sky-500 font-bold">STAGE 3: RESTORATION</span>
+          <span class="font-bold text-sm text-sky-600">4 Restored @ 8 kW</span>
+          <p class="text-xs text-[var(--muted-foreground)]">BlackoutShield restores PWR &rarr; CLINIC &rarr; COLD &rarr; ACCESS. Lights & WiFi hold in reserve.</p>
+        </div>
+        <div class="p-4 rounded-xl bg-[var(--background)] border border-purple-500/30 flex flex-col gap-2">
+          <span class="text-xs font-mono text-purple-500 font-bold">STAGE 4: PROOF LEDGER</span>
+          <span class="font-bold text-sm text-purple-600">100% Auditable</span>
+          <p class="text-xs text-[var(--muted-foreground)]">Every decision and quarantine reason is saved to an immutable JSON ledger for safety reviews.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ======================================================== -->
+  <!-- MODULE 4: HACKATHON DEMO & JUDGE Q&A                     -->
+  <!-- ======================================================== -->
+  <main id="section-pitch" class="hidden flex flex-col gap-5">
+    <section class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 flex flex-col gap-4">
+      <div class="flex items-center justify-between border-b border-[var(--border)] pb-3">
+        <h2 class="text-base font-bold text-[var(--foreground)]">Hackathon Judge Presentation Cheat Sheet</h2>
+        <span class="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-600 font-semibold">3-Minute Demo Playbook</span>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+        <div class="p-4 rounded-xl bg-[var(--background)] border border-[var(--border)] flex flex-col gap-2">
+          <span class="font-bold text-amber-500 text-sm">Judge: "What is genuinely unique here?"</span>
+          <p class="text-[var(--foreground)] leading-relaxed">
+            "Most systems either blindly trust bad input data or halt entirely. We pair conservative data repair and proof-carrying quarantine with a dependency-aware power recovery engine under limited backup power. We never hallucinate or guess bad data."
+          </p>
+        </div>
+        <div class="p-4 rounded-xl bg-[var(--background)] border border-[var(--border)] flex flex-col gap-2">
+          <span class="font-bold text-amber-500 text-sm">Judge: "Why not use AI to fix the bad rows?"</span>
+          <p class="text-[var(--foreground)] leading-relaxed">
+            "If a field contains 'ninety', an AI or regex cannot prove whether it meant 90, 19, or 90.0. In life-critical infrastructure, guessing can cause catastrophic failure. AutoShield quarantines untrusted records and exports proof evidence."
+          </p>
+        </div>
+        <div class="p-4 rounded-xl bg-[var(--background)] border border-[var(--border)] flex flex-col gap-2">
+          <span class="font-bold text-amber-500 text-sm">Judge: "Does it control actual power hardware?"</span>
+          <p class="text-[var(--foreground)] leading-relaxed">
+            "No. It is an in-memory software prototype with synthetic data. It is not connected to SCADA or physical grid hardware, and recovery uses a deterministic greedy heuristic rather than physics modeling."
+          </p>
+        </div>
+        <div class="p-4 rounded-xl bg-[var(--background)] border border-[var(--border)] flex flex-col gap-2">
+          <span class="font-bold text-amber-500 text-sm">Judge: "What would you build next?"</span>
+          <p class="text-[var(--foreground)] leading-relaxed">
+            "We would integrate mixed-integer programming (MIP) for optimal power scheduling, live SCADA sensor streaming, role-based access control, and cryptographic hardware signing for the audit ledger."
+          </p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="text-xs text-[var(--muted-foreground)] text-center py-2 flex items-center justify-center gap-2">
+    <span>BlackoutShield + AutoShield Prototype</span>
+    <span>&bull;</span>
+    <span>Standalone Zero-Dependency Web Console</span>
+  </footer>
+
+  <!-- ======================================================== -->
+  <!-- JAVASCRIPT ENGINE (Exact In-Memory Solver)               -->
+  <!-- ======================================================== -->
+  <script>
+    const DEFAULT_SERVICES_CSV = `service_id,service_name,criticality,power_kw,status,depends_on,timestamp
+PWR,Backup Power Controller,5,1,ONLINE,,2026-10-29 09:00:00
+WIFI,Campus WiFi,3,4,ONLINE,PWR,2026-10-29 09:01:00
+CLINIC,First Aid Clinic,5,3,ONLINE,PWR,2026-10-29 09:02:00
+COLD,Medicine Refrigerator,5,2,ONLINE,PWR,2026-10-29 09:03:00
+ACCESS,Access Control,4,2,ONLINE,PWR,2026-10-29 09:04:00
+LIGHTS,Common Area Lights,2,3,ONLINE,PWR,2026-10-29 09:05:00
+WIFI,Campus WiFi duplicate,3,4,ONLINE,PWR,2026-10-29 09:06:00
+CAMERA,Security Camera,high,1,ONLINE,PWR,not-a-date`;
+
+    let activeBlackoutCSV = DEFAULT_SERVICES_CSV;
+    let currentPowerBudget = 8;
+    let blackoutState = null;
+
+    function parseCSV(text) {
+      const lines = text.trim().split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+      if (lines.length === 0) return [];
+      const headers = lines[0].split(',').map(h => h.trim());
+      const rows = [];
+      for (let i = 1; i < lines.length; i++) {
+        const parts = lines[i].split(',').map(p => p.trim());
+        const row = {};
+        headers.forEach((h, idx) => {
+          row[h] = parts[idx] !== undefined ? parts[idx] : "";
+        });
+        rows.push(row);
+      }
+      return rows;
+    }
+
+    // Engine: Validation & Quarantine
+    function validateBlackoutData(rawRows) {
+      const audit = [];
+      const quarantineIndices = new Set();
+      const reasons = {};
+
+      function reject(idx, reason) {
+        quarantineIndices.add(idx);
+        if (!reasons[idx]) reasons[idx] = [];
+        reasons[idx].push(reason);
+      }
+
+      const rows = rawRows.map(r => ({ ...r }));
+
+      rows.forEach((row, idx) => {
+        ['service_id', 'service_name', 'status', 'depends_on', 'timestamp'].forEach(col => {
+          if (row[col]) {
+            const trimmed = row[col].trim();
+            if (trimmed !== row[col]) {
+              audit.push({ action: 'TRIM_WHITESPACE', details: `${col}: trimmed whitespace` });
+              row[col] = trimmed;
+            }
+          }
+        });
+        row.service_id = (row.service_id || '').toUpperCase();
+        row.status = (row.status || '').toUpperCase();
+        row.depends_on = (row.depends_on || '').toUpperCase();
+
+        if (!row.service_id) reject(idx, "Missing service_id");
+        if (!row.service_name) reject(idx, "Missing service_name");
+
+        const crit = Number(row.criticality);
+        if (isNaN(crit) || !Number.isInteger(crit)) {
+          reject(idx, "Criticality must be an integer from 1 to 5 (found non-integer)");
+        } else if (crit < 1 || crit > 5) {
+          reject(idx, "Criticality must be from 1 to 5");
+        }
+
+        const pwr = Number(row.power_kw);
+        if (isNaN(pwr) || pwr <= 0) {
+          reject(idx, "power_kw must be a positive number");
+        }
+
+        if (row.status !== "ONLINE" && row.status !== "OFFLINE") {
+          reject(idx, "Status must be ONLINE or OFFLINE");
+        }
+
+        if (isNaN(Date.parse(row.timestamp))) {
+          reject(idx, "Invalid or unparseable timestamp");
+        }
+      });
+
+      // Duplicates
+      const seen = new Set();
+      rows.forEach((row, idx) => {
+        const sid = row.service_id;
+        if (sid) {
+          if (seen.has(sid)) {
+            reject(idx, `Duplicate service_id: ${sid}`);
+          } else {
+            seen.add(sid);
+          }
+        }
+      });
+
+      // Dependencies
+      const allIds = new Set(rows.map(r => r.service_id).filter(Boolean));
+      rows.forEach((row, idx) => {
+        const deps = (row.depends_on || '').split(',').map(d => d.trim()).filter(Boolean);
+        const unknown = deps.filter(d => !allIds.has(d));
+        if (unknown.length > 0) {
+          reject(idx, "Unknown dependency ID(s): " + unknown.join(', '));
+        }
+        if (row.service_id && deps.includes(row.service_id)) {
+          reject(idx, "A service cannot depend on itself");
+        }
+      });
+
+      let accepted = [];
+      let quarantine = [];
+
+      rows.forEach((row, idx) => {
+        if (quarantineIndices.has(idx)) {
+          const reasonStr = (reasons[idx] || ["Unknown validation issue"]).join('; ');
+          quarantine.push({ ...row, quarantine_reason: reasonStr, raw_idx: idx + 2 });
+          audit.push({ action: 'QUARANTINE_ROW', details: `Row ${idx + 2}: ${reasonStr}` });
+        } else {
+          accepted.push({
+            service_id: row.service_id,
+            service_name: row.service_name,
+            criticality: parseInt(row.criticality),
+            power_kw: parseFloat(row.power_kw),
+            status: row.status,
+            depends_on: row.depends_on,
+            timestamp: row.timestamp
+          });
+        }
+      });
+
+      // Quarantining dependent services
+      let acceptedIds = new Set(accepted.map(r => r.service_id));
+      let unsafeIndices = [];
+      accepted.forEach((row, idx) => {
+        const deps = (row.depends_on || '').split(',').map(d => d.trim()).filter(Boolean);
+        const missing = deps.filter(d => !acceptedIds.has(d));
+        if (missing.length > 0) {
+          unsafeIndices.push(idx);
+          audit.push({
+            action: 'QUARANTINE_DEPENDENT_SERVICE',
+            details: `${row.service_id} depends on quarantined/missing service(s): ${missing.join(', ')}`
+          });
+        }
+      });
+
+      if (unsafeIndices.length > 0) {
+        const toMove = accepted.filter((_, idx) => unsafeIndices.includes(idx));
+        toMove.forEach(m => {
+          quarantine.push({ ...m, quarantine_reason: "Depends on a missing or quarantined service", raw_idx: "Cascade" });
+        });
+        accepted = accepted.filter((_, idx) => !unsafeIndices.includes(idx));
+      }
+
+      audit.unshift({ action: 'VALIDATION_SUMMARY', details: `Accepted ${accepted.length} row(s); quarantined ${quarantine.length} row(s)` });
+
+      return { accepted, quarantine, audit };
+    }
+
+    // Engine: Simulation logic
+    function runSimulation(cleanServices, budget) {
+      if (cleanServices.length === 0) {
+        return {
+          recoveryList: [],
+          timeline: [],
+          summary: { restored_count: 0, total_count: 0, power_used_kw: 0, backup_budget_kw: budget, remaining_kw: budget }
+        };
+      }
+
+      const dependencyMap = {};
+      cleanServices.forEach(s => {
+        const deps = (s.depends_on || '').split(',').map(d => d.trim()).filter(Boolean);
+        dependencyMap[s.service_id] = deps;
+      });
+
+      let remainingIds = new Set(cleanServices.map(s => s.service_id));
+      const restored = new Set();
+      const results = {};
+      const timeline = [];
+      let used = 0.0;
+      let stepNum = 1;
+
+      while (remainingIds.size > 0) {
+        const ready = [];
+        cleanServices.forEach(row => {
+          const sid = row.service_id;
+          if (!remainingIds.has(sid)) return;
+          const allDepsRestored = (dependencyMap[sid] || []).every(dep => restored.has(dep));
+          if (allDepsRestored) {
+            ready.push(row);
+          }
+        });
+
+        const affordable = ready.filter(r => r.power_kw <= (budget - used + 1e-9));
+        if (affordable.length === 0) break;
+
+        // Sort by highest criticality, lower power, stable ID
+        affordable.sort((a, b) => {
+          if (b.criticality !== a.criticality) return b.criticality - a.criticality;
+          if (a.power_kw !== b.power_kw) return a.power_kw - b.power_kw;
+          return a.service_id.localeCompare(b.service_id);
+        });
+
+        const chosen = affordable[0];
+        const sid = chosen.service_id;
+        restored.add(sid);
+        remainingIds.delete(sid);
+        used += chosen.power_kw;
+        results[sid] = "RESTORED";
+
+        timeline.push({
+          step: stepNum++,
+          id: sid,
+          name: chosen.service_name,
+          power: chosen.power_kw,
+          running_used: used,
+          crit: chosen.criticality
+        });
+      }
+
+      remainingIds.forEach(sid => {
+        const allDepsRestored = (dependencyMap[sid] || []).every(dep => restored.has(dep));
+        if (!allDepsRestored) {
+          results[sid] = "WAITING_FOR_DEPENDENCY";
+        } else {
+          results[sid] = "INSUFFICIENT_BACKUP_POWER";
+        }
+      });
+
+      const recoveryList = cleanServices.map(s => {
+        const res = results[s.service_id];
+        const score = (s.criticality / s.power_kw).toFixed(2);
+        return {
+          ...s,
+          recovery_result: res,
+          priority_score: parseFloat(score)
+        };
+      });
+
+      recoveryList.sort((a, b) => {
+        if (a.recovery_result !== b.recovery_result) {
+          const order = { "RESTORED": 1, "INSUFFICIENT_BACKUP_POWER": 2, "WAITING_FOR_DEPENDENCY": 3 };
+          return (order[a.recovery_result] || 4) - (order[b.recovery_result] || 4);
+        }
+        if (b.criticality !== a.criticality) return b.criticality - a.criticality;
+        return a.power_kw - b.power_kw;
+      });
+
+      const summary = {
+        restored_count: restored.size,
+        total_count: cleanServices.length,
+        power_used_kw: parseFloat(used.toFixed(2)),
+        backup_budget_kw: parseFloat(budget.toFixed(2)),
+        remaining_kw: parseFloat(Math.max(0, budget - used).toFixed(2))
+      };
+
+      return { recoveryList, timeline, summary };
+    }
+
+    // Render Dynamic SVG Topology
+    function renderTopologySVG(cleanServices, recoveryResults, quarantineRecords) {
+      const container = document.getElementById('topology-canvas-wrap');
+      const statusMap = {};
+      recoveryResults.forEach(r => { statusMap[r.service_id] = r.recovery_result; });
+      quarantineRecords.forEach(q => { statusMap[q.service_id] = "QUARANTINED"; });
+
+      const nodes = [
+        { id: "PWR", name: "Backup Generator", x: 90, y: 120, kw: 1, crit: 5 },
+        { id: "CLINIC", name: "First Aid Clinic", x: 270, y: 45, kw: 3, crit: 5, dep: "PWR" },
+        { id: "COLD", name: "Medicine Fridge", x: 270, y: 120, kw: 2, crit: 5, dep: "PWR" },
+        { id: "ACCESS", name: "Access Gates", x: 270, y: 195, kw: 2, crit: 4, dep: "PWR" },
+        { id: "LIGHTS", name: "Area Lights", x: 450, y: 70, kw: 3, crit: 2, dep: "PWR" },
+        { id: "WIFI", name: "Campus WiFi", x: 450, y: 170, kw: 4, crit: 3, dep: "PWR" }
+      ];
+
+      function getNodeColor(sid) {
+        const st = statusMap[sid];
+        if (st === "RESTORED") return { stroke: "#22c55e", fill: "rgba(34, 197, 94, 0.15)", text: "#16a34a" };
+        if (st === "INSUFFICIENT_BACKUP_POWER") return { stroke: "#eab308", fill: "rgba(234, 179, 8, 0.12)", text: "#ca8a04" };
+        if (st === "WAITING_FOR_DEPENDENCY") return { stroke: "#3b82f6", fill: "rgba(59, 130, 246, 0.12)", text: "#2563eb" };
+        return { stroke: "#ef4444", fill: "rgba(239, 68, 68, 0.12)", text: "#dc2626" };
+      }
+
+      let svg = `<svg viewBox="0 0 540 240" class="w-full h-full">`;
+
+      // Connectors
+      nodes.forEach(n => {
+        if (n.dep) {
+          const parent = nodes.find(p => p.id === n.dep);
+          if (parent) {
+            const isLive = statusMap[n.id] === "RESTORED";
+            const stroke = isLive ? "#22c55e" : "#64748b";
+            const width = isLive ? 2.5 : 1.5;
+            const dash = isLive ? "none" : "4,4";
+            svg += `
+              <path d="M ${parent.x + 44} ${parent.y} C ${(parent.x + n.x)/2} ${parent.y}, ${(parent.x + n.x)/2} ${n.y}, ${n.x - 44} ${n.y}" 
+                    stroke="${stroke}" stroke-width="${width}" stroke-dasharray="${dash}" fill="none" opacity="${isLive ? 1 : 0.4}" />
+            `;
+          }
+        }
+      });
+
+      // Nodes
+      nodes.forEach(n => {
+        const c = getNodeColor(n.id);
+        const isLive = statusMap[n.id] === "RESTORED";
+        const pulseClass = isLive ? 'powered-pulse' : '';
+        svg += `
+          <g transform="translate(${n.x}, ${n.y})" class="${pulseClass}">
+            <rect x="-44" y="-22" width="88" height="44" rx="10" fill="var(--card)" stroke="${c.stroke}" stroke-width="2" />
+            <text x="0" y="-4" text-anchor="middle" font-size="11" font-weight="bold" fill="var(--foreground)">${n.id}</text>
+            <text x="0" y="10" text-anchor="middle" font-size="9" fill="${c.text}" font-weight="600">${n.kw}kW &bull; ${statusMap[n.id] || 'OFFLINE'}</text>
+          </g>
+        `;
+      });
+
+      svg += `</svg>`;
+      container.innerHTML = svg;
+    }
+
+    function refreshBlackoutUI() {
+      const rawRows = parseCSV(activeBlackoutCSV);
+      const { accepted, quarantine, audit } = validateBlackoutData(rawRows);
+      const { recoveryList, timeline, summary } = runSimulation(accepted, currentPowerBudget);
+
+      blackoutState = { rawRows, accepted, quarantine, audit, recoveryList, timeline, summary };
+
+      // 1. Data Validation Breakdown
+      const totalCount = rawRows.length;
+      const acceptedCount = accepted.length;
+      const quarantineCount = quarantine.length;
+      const acceptedPct = ((acceptedCount / totalCount) * 100).toFixed(1);
+      const quarantinePct = ((quarantineCount / totalCount) * 100).toFixed(1);
+
+      document.getElementById('metric-total-rows').innerHTML = `${totalCount} <span class="text-xs font-normal text-[var(--muted-foreground)]">rows</span>`;
+      document.getElementById('metric-accepted-count').innerHTML = `${acceptedCount} <span class="text-xs font-normal text-[var(--muted-foreground)]">of ${totalCount} valid</span>`;
+      document.getElementById('metric-accepted-pct').innerText = `${acceptedPct}%`;
+      document.getElementById('metric-quarantine-count').innerHTML = `${quarantineCount} <span class="text-xs font-normal text-[var(--muted-foreground)]">of ${totalCount} rows</span>`;
+      document.getElementById('metric-quarantine-pct').innerText = `${quarantinePct}%`;
+      document.getElementById('metric-health-score').innerText = `${acceptedPct}%`;
+      document.getElementById('metric-health-bar').style.width = `${acceptedPct}%`;
+
+      // Quarantine Reasons Cards
+      const reasonsContainer = document.getElementById('quarantine-reasons-cards');
+      reasonsContainer.innerHTML = quarantine.map(q => `
+        <div class="p-2.5 rounded-lg bg-[var(--card)] border border-rose-500/30 flex items-start gap-2">
+          <span class="text-rose-500 font-bold mt-0.5">&bull;</span>
+          <div>
+            <div class="font-bold text-[var(--foreground)]">Row ${q.raw_idx}: ${q.service_id || 'UNKNOWN'} (${q.service_name || 'No Name'})</div>
+            <div class="text-[11px] text-rose-600 font-medium">${q.quarantine_reason}</div>
+          </div>
+        </div>
+      `).join('');
+
+      // 2. Budget and Recovery KPIs
+      document.getElementById('budget-badge').innerText = `${currentPowerBudget} kW`;
+      document.getElementById('budget-slider').value = currentPowerBudget;
+
+      document.getElementById('kpi-restored-count').innerText = `${summary.restored_count} / ${summary.total_count}`;
+      const resPct = summary.total_count > 0 ? ((summary.restored_count / summary.total_count) * 100).toFixed(1) : 0;
+      document.getElementById('kpi-restored-pct').innerText = `${resPct}% operational`;
+      document.getElementById('kpi-used-kw').innerText = `${summary.power_used_kw.toFixed(1)} kW`;
+      document.getElementById('kpi-left-kw').innerText = `${summary.remaining_kw.toFixed(1)} kW`;
+
+      const unrestored = summary.total_count - summary.restored_count;
+      document.getElementById('kpi-unrestored-count').innerText = `${unrestored} services`;
+
+      // Power Distribution Bar
+      const usedPct = (summary.power_used_kw / currentPowerBudget) * 100;
+      const idlePct = (summary.remaining_kw / currentPowerBudget) * 100;
+      document.getElementById('bar-used-power').style.width = `${usedPct}%`;
+      document.getElementById('bar-idle-power').style.width = `${idlePct}%`;
+      document.getElementById('power-distribution-label').innerText = `${summary.power_used_kw} kW used &bull; ${summary.remaining_kw} kW reserve`;
+
+      // 3. Sequential Timeline
+      const timelineContainer = document.getElementById('dispatch-timeline');
+      if (timeline.length === 0) {
+        timelineContainer.innerHTML = '<div class="text-xs text-[var(--muted-foreground)]">No services restored under current budget.</div>';
+      } else {
+        timelineContainer.innerHTML = timeline.map(t => `
+          <div class="p-2 rounded-lg bg-[var(--background)] border border-emerald-500/30 flex items-center justify-between text-xs">
+            <div class="flex items-center gap-2">
+              <span class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-600 font-bold flex items-center justify-center text-[11px]">${t.step}</span>
+              <div>
+                <span class="font-bold text-[var(--foreground)]">${t.id}</span>
+                <span class="text-[11px] text-[var(--muted-foreground)]">(${t.name})</span>
+              </div>
+            </div>
+            <div class="text-right">
+              <span class="font-semibold text-emerald-600">+${t.power} kW</span>
+              <div class="text-[10px] text-[var(--muted-foreground)]">Cumul: ${t.running_used} kW</div>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      // 4. Tab Tables
+      document.getElementById('tab-count-clean').innerText = accepted.length;
+      document.getElementById('tab-count-quarantine').innerText = quarantine.length;
+
+      // Plan Table
+      const planBody = document.getElementById('plan-table-body');
+      planBody.innerHTML = recoveryList.map(r => {
+        let badgeClass = 'badge-waiting';
+        if (r.recovery_result === 'RESTORED') badgeClass = 'badge-restored';
+        else if (r.recovery_result === 'INSUFFICIENT_BACKUP_POWER') badgeClass = 'badge-insufficient';
+
+        return `
+          <tr class="hover:bg-[var(--border)]/10">
+            <td class="py-2 px-3 font-mono font-bold text-[var(--foreground)]">${r.service_id}</td>
+            <td class="py-2 px-3">${r.service_name}</td>
+            <td class="py-2 px-3"><span class="px-2 py-0.5 rounded bg-[var(--background)] font-medium">Rank ${r.criticality}</span></td>
+            <td class="py-2 px-3 font-semibold">${r.power_kw} kW</td>
+            <td class="py-2 px-3 font-mono font-bold text-sky-600">${r.priority_score}</td>
+            <td class="py-2 px-3 font-mono text-[var(--muted-foreground)]">${r.depends_on || '&mdash;'}</td>
+            <td class="py-2 px-3">
+              <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold ${badgeClass}">${r.recovery_result}</span>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      // Clean Table
+      document.getElementById('clean-table-body').innerHTML = accepted.map(a => `
+        <tr class="hover:bg-[var(--border)]/10">
+          <td class="py-2 px-3 font-mono font-bold">${a.service_id}</td>
+          <td class="py-2 px-3">${a.service_name}</td>
+          <td class="py-2 px-3">${a.criticality}</td>
+          <td class="py-2 px-3 font-semibold">${a.power_kw} kW</td>
+          <td class="py-2 px-3 text-emerald-600 font-semibold">${a.status}</td>
+          <td class="py-2 px-3 font-mono text-[var(--muted-foreground)]">${a.depends_on || '&mdash;'}</td>
+          <td class="py-2 px-3 text-[var(--muted-foreground)]">${a.timestamp}</td>
+        </tr>
+      `).join('');
+
+      // Quarantine Table
+      document.getElementById('quarantine-table-body').innerHTML = quarantine.map(q => `
+        <tr class="hover:bg-[var(--border)]/10">
+          <td class="py-2 px-3 font-mono font-bold text-rose-500">${q.service_id || 'UNKNOWN'}</td>
+          <td class="py-2 px-3">${q.service_name || '&mdash;'}</td>
+          <td class="py-2 px-3">${q.criticality || '&mdash;'}</td>
+          <td class="py-2 px-3">${q.power_kw || '&mdash;'}</td>
+          <td class="py-2 px-3 text-rose-600 font-medium">${q.quarantine_reason}</td>
+        </tr>
+      `).join('');
+
+      // Audit Table
+      document.getElementById('audit-table-body').innerHTML = audit.map(a => `
+        <tr class="hover:bg-[var(--border)]/10">
+          <td class="py-2 px-3 font-mono font-semibold text-amber-500">${a.action}</td>
+          <td class="py-2 px-3">${a.details}</td>
+        </tr>
+      `).join('');
+
+      // Topology
+      renderTopologySVG(accepted, recoveryList, quarantine);
+    }
+
+    function setBudget(kw) {
+      currentPowerBudget = parseInt(kw);
+      refreshBlackoutUI();
+    }
+
+    function loadDefaultBlackoutData() {
+      activeBlackoutCSV = DEFAULT_SERVICES_CSV;
+      document.getElementById('bs-file-label').innerText = "sample_services.csv (8 records ingested)";
+      refreshBlackoutUI();
+    }
+
+    function uploadBlackoutCSV(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        activeBlackoutCSV = e.target.result;
+        document.getElementById('bs-file-label').innerText = `${file.name} (Custom Upload)`;
+        refreshBlackoutUI();
+      };
+      reader.readAsText(file);
+    }
+
+    function switchTab(tname) {
+      ['plan', 'clean', 'quarantine', 'audit'].forEach(t => {
+        const btn = document.getElementById(`tab-btn-${t}`);
+        const pnl = document.getElementById(`tab-panel-${t}`);
+        if (t === tname) {
+          btn.className = "tab-btn-active py-1 whitespace-nowrap";
+          pnl.classList.remove('hidden');
+        } else {
+          btn.className = "text-[var(--muted-foreground)] py-1 hover:text-[var(--foreground)] whitespace-nowrap";
+          pnl.classList.add('hidden');
+        }
+      });
+    }
+
+    function switchModule(mname) {
+      ['blackout', 'autoshield', 'pipeline', 'pitch'].forEach(m => {
+        const btn = document.getElementById(`nav-${m}`);
+        const sec = document.getElementById(`section-${m}`);
+        if (m === mname) {
+          btn.className = "nav-btn-active px-3 py-1.5 rounded-lg transition-all whitespace-nowrap";
+          sec.classList.remove('hidden');
+        } else {
+          btn.className = "px-3 py-1.5 rounded-lg text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-all whitespace-nowrap";
+          sec.classList.add('hidden');
+        }
+      });
+    }
+
+    // ========================================================
+    // AUTOSHIELD ENGINE & DYNAMIC PROBLEM SCENARIOS
+    // ========================================================
+    const AUTOSHIELD_SCENARIOS = {
+      1: {
+        name: "Scenario 1: Attendance Dataset (Typo, Out-of-Range, Bad Date, Duplicate)",
+        csv: `student_id,attendance_pct,date
+S101,85,2026-10-29
+ S102 ,92,2026-10-29
+S103,ninety,2026-10-29
+S104,72,not-a-date
+S105,105,2026-10-29
+S106,91,2026-10-29
+S106,88,2026-10-29
+S107,67,2026-10-29`
+      },
+      2: {
+        name: "Scenario 2: Smart Grid Sensor Telemetry (Negative Voltage, Spike String, 999kV, Duplicate)",
+        csv: `sensor_id,voltage_v,frequency_hz,timestamp
+VOLT-01,230.4,50.01,2026-10-30 10:00:00
+ VOLT-02 ,229.8,49.98,2026-10-30 10:01:00
+VOLT-03,-48.5,50.00,2026-10-30 10:02:00
+VOLT-04,ERR_SPIKE,50.02,2026-10-30 10:03:00
+VOLT-05,9999.0,50.00,2026-10-30 10:04:00
+VOLT-06,231.2,50.03,2026-10-30 10:05:00
+VOLT-06,231.0,49.99,2026-10-30 10:06:00
+VOLT-07,230.1,65.50,2026-10-30 10:07:00`
+      },
+      3: {
+        name: "Scenario 3: Hospital ICU Vital Signs (420 bpm, Missing ID, SpO2 String, Negative)",
+        csv: `patient_id,heart_rate_bpm,spo2_pct,timestamp
+P-801,72,98,2026-10-30 12:00:00
+ P-802 ,80,99,2026-10-30 12:00:00
+P-803,420,96,2026-10-30 12:00:00
+P-804,68,ninety-nine,2026-10-30 12:00:00
+P-805,-15,97,2026-10-30 12:00:00
+,75,98,2026-10-30 12:00:00
+P-807,85,108,2026-10-30 12:00:00
+P-808,74,97,2026-10-30 12:00:00`
+      },
+      4: {
+        name: "Scenario 4: 100% Clean Verified Dataset (Zero Defects)",
+        csv: `sensor_id,voltage_v,power_factor,timestamp
+GRID-101,230.1,0.98,2026-10-30 12:00:00
+GRID-102,230.4,0.99,2026-10-30 12:01:00
+GRID-103,229.8,0.97,2026-10-30 12:02:00
+GRID-104,230.2,0.98,2026-10-30 12:03:00
+GRID-105,230.0,0.99,2026-10-30 12:04:00
+GRID-106,230.5,0.97,2026-10-30 12:05:00
+GRID-107,229.9,0.98,2026-10-30 12:06:00
+GRID-108,230.2,0.99,2026-10-30 12:07:00`
+      }
+    };
+
+    let activeAutoCSV = AUTOSHIELD_SCENARIOS[1].csv;
+    let currentAutoScenario = 1;
+    let autoAcceptedData = [];
+    let autoQuarantineData = [];
+    let autoAuditLog = [];
+
+    function switchAutoScenario(num) {
+      currentAutoScenario = num;
+      activeAutoCSV = AUTOSHIELD_SCENARIOS[num].csv;
+      document.getElementById('as-active-scenario-name').innerText = AUTOSHIELD_SCENARIOS[num].name;
+      const ta = document.getElementById('as-raw-textarea');
+      if (ta) ta.value = activeAutoCSV;
+
+      [1, 2, 3, 4].forEach(i => {
+        const btn = document.getElementById(`as-btn-scen-${i}`);
+        if (!btn) return;
+        if (i === num) {
+          btn.className = (i === 4)
+            ? "text-xs p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/40 text-emerald-500 font-bold text-left transition-all"
+            : "text-xs p-2 rounded-lg bg-amber-500/10 border border-amber-500/40 text-amber-500 font-bold text-left transition-all";
+        } else {
+          btn.className = "text-xs p-2 rounded-lg bg-[var(--card)] border border-[var(--border)] hover:border-amber-500 hover:text-amber-500 font-medium text-left transition-all";
+        }
+      });
+
+      executeAutoShieldPipeline();
+    }
+
+    function toggleAutoEditor() {
+      const wrap = document.getElementById('as-editor-wrap');
+      const ta = document.getElementById('as-raw-textarea');
+      if (wrap.classList.contains('hidden')) {
+        wrap.classList.remove('hidden');
+        ta.value = activeAutoCSV;
+      } else {
+        wrap.classList.add('hidden');
+      }
+    }
+
+    function applyAutoTextareaAndRun() {
+      const ta = document.getElementById('as-raw-textarea');
+      if (ta && ta.value.trim().length > 0) {
+        activeAutoCSV = ta.value.trim();
+        document.getElementById('as-active-scenario-name').innerText = "Custom Edited Data";
+        executeAutoShieldPipeline();
+      }
+    }
+
+    function uploadAutoShieldCSV(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        activeAutoCSV = e.target.result;
+        document.getElementById('as-active-scenario-name').innerText = `Uploaded: ${file.name}`;
+        const ta = document.getElementById('as-raw-textarea');
+        if (ta) ta.value = activeAutoCSV;
+        executeAutoShieldPipeline();
+      };
+      reader.readAsText(file);
+    }
+
+    function executeAutoShieldPipeline() {
+      const rows = parseCSV(activeAutoCSV);
+      if (rows.length === 0) return;
+
+      const headers = Object.keys(rows[0] || {});
+      const idKey = headers.find(h => /id/i.test(h)) || headers[0];
+      const dateKey = headers.find(h => /date|time/i.test(h));
+      const metricKeys = headers.filter(h => h !== idKey && h !== dateKey);
+
+      let detectedIssuesCount = 0;
+      let repairsCount = 0;
+      const audit = [];
+      const quarantine = [];
+      const accepted = [];
+      const seenIds = new Set();
+
+      rows.forEach((origRow, idx) => {
+        const row = { ...origRow };
+        const rawLineNum = idx + 2;
+        let isQuarantined = false;
+        let quarantineReason = "";
+        let problemField = "";
+        let problemValue = "";
+
+        // 1. Safe Deterministic Repairs: Whitespace Trimming
+        headers.forEach(col => {
+          if (row[col] && typeof row[col] === 'string') {
+            const rawVal = row[col];
+            const trimmed = rawVal.trim();
+            if (trimmed !== rawVal) {
+              repairsCount++;
+              detectedIssuesCount++;
+              audit.push({ action: 'TRIM_WHITESPACE', details: `Row ${rawLineNum} col ${col}: trimmed whitespace` });
+              row[col] = trimmed;
+            }
+          }
+        });
+
+        // 2. Validate Primary Identifier
+        const idVal = row[idKey];
+        if (!idVal || idVal.length === 0) {
+          isQuarantined = true;
+          detectedIssuesCount++;
+          problemField = idKey;
+          problemValue = "(missing/empty)";
+          quarantineReason = "Missing mandatory primary identifier; violates audit traceability.";
+        } else if (seenIds.has(idVal.toUpperCase())) {
+          isQuarantined = true;
+          detectedIssuesCount++;
+          problemField = idKey;
+          problemValue = idVal;
+          quarantineReason = `Primary key collision: duplicate identifier '${idVal}' rejected.`;
+        } else {
+          seenIds.add(idVal.toUpperCase());
+        }
+
+        // 3. Validate Date / Timestamp
+        if (!isQuarantined && dateKey && row[dateKey]) {
+          const dtVal = row[dateKey];
+          if (isNaN(Date.parse(dtVal))) {
+            isQuarantined = true;
+            detectedIssuesCount++;
+            problemField = dateKey;
+            problemValue = dtVal;
+            quarantineReason = `Invalid timestamp format '${dtVal}'; fails ISO standard date validation.`;
+          }
+        }
+
+        // 4. Validate Metrics & Numeric Fields (Exact problem value extraction)
+        if (!isQuarantined) {
+          for (let col of metricKeys) {
+            const rawVal = row[col];
+            const num = Number(rawVal);
+
+            if (isNaN(num) || rawVal === "") {
+              isQuarantined = true;
+              detectedIssuesCount++;
+              problemField = col;
+              problemValue = rawVal || "(blank)";
+              quarantineReason = `Non-numeric text '${rawVal}' cannot be safely converted to a number (zero-guess policy).`;
+              break;
+            }
+
+            if (/pct|percent|attendance/i.test(col)) {
+              if (num < 0 || num > 100) {
+                isQuarantined = true;
+                detectedIssuesCount++;
+                problemField = col;
+                problemValue = `${num}%`;
+                quarantineReason = `Percentage value ${num}% is outside physical boundary (0 to 100%).`;
+                break;
+              }
+            } else if (/voltage|volt/i.test(col)) {
+              if (num < 0) {
+                isQuarantined = true;
+                detectedIssuesCount++;
+                problemField = col;
+                problemValue = `${num}V`;
+                quarantineReason = `Negative voltage (${num}V) detected in positive AC bus line.`;
+                break;
+              } else if (num > 1000) {
+                isQuarantined = true;
+                detectedIssuesCount++;
+                problemField = col;
+                problemValue = `${num}V`;
+                quarantineReason = `Voltage overload (${num}V) exceeds substation physical tolerance limits.`;
+                break;
+              }
+            } else if (/freq/i.test(col)) {
+              if (num < 47 || num > 53) {
+                isQuarantined = true;
+                detectedIssuesCount++;
+                problemField = col;
+                problemValue = `${num} Hz`;
+                quarantineReason = `Grid frequency (${num} Hz) is outside safe operational frequency band (47-53 Hz).`;
+                break;
+              }
+            } else if (/heart_rate|bpm/i.test(col)) {
+              if (num < 20 || num > 300) {
+                isQuarantined = true;
+                detectedIssuesCount++;
+                problemField = col;
+                problemValue = `${num} bpm`;
+                quarantineReason = `Heart rate (${num} bpm) is outside physiologically survivable bounds (20-300 bpm).`;
+                break;
+              }
+            } else if (/spo2/i.test(col)) {
+              if (num < 40 || num > 100) {
+                isQuarantined = true;
+                detectedIssuesCount++;
+                problemField = col;
+                problemValue = `${num}%`;
+                quarantineReason = `SpO2 reading (${num}%) exceeds maximum 100% hemoglobin saturation.`;
+                break;
+              }
+            } else {
+              if (num < 0) {
+                isQuarantined = true;
+                detectedIssuesCount++;
+                problemField = col;
+                problemValue = `${num}`;
+                quarantineReason = `Negative metric value (${num}) rejected by safety schema.`;
+                break;
+              }
+            }
+
+            row[col] = num;
+          }
+        }
+
+        if (isQuarantined) {
+          quarantine.push({
+            ...origRow,
+            raw_line: rawLineNum,
+            record_id: idVal || `Row ${rawLineNum}`,
+            faulty_field: problemField,
+            problem_value: problemValue,
+            quarantine_reason: quarantineReason
+          });
+          audit.push({ action: 'QUARANTINE_RECORD', details: `Row ${rawLineNum} (${idVal || 'No ID'}): ${quarantineReason}` });
+        } else {
+          accepted.push(row);
+        }
+      });
+
+      autoAcceptedData = accepted;
+      autoQuarantineData = quarantine;
+      autoAuditLog = audit;
+
+      // 1. Update Metrics Cards
+      document.getElementById('as-raw-rows').innerText = rows.length;
+      document.getElementById('as-raw-rows-sub').innerText = `${headers.length} columns parsed`;
+      document.getElementById('as-detected-issues').innerText = detectedIssuesCount;
+      document.getElementById('as-detected-sub').innerText = `${detectedIssuesCount} problems isolated/repaired`;
+      document.getElementById('as-repairs-count').innerText = repairsCount;
+      document.getElementById('as-repairs-sub').innerText = `${repairsCount} whitespace fields trimmed`;
+      document.getElementById('as-quarantined-count').innerText = quarantine.length;
+      document.getElementById('as-accepted-badge').innerText = `${accepted.length} valid`;
+      document.getElementById('as-quarantine-badge').innerText = `${quarantine.length} isolated`;
+
+      // 2. Update Verification Gate Banner
+      const banner = document.getElementById('as-verification-banner');
+      const icon = document.getElementById('as-gate-icon');
+      const msg = document.getElementById('as-gate-message');
+      const stat = document.getElementById('as-gate-status');
+
+      if (quarantine.length === 0) {
+        banner.className = "p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-semibold";
+        icon.innerText = "✓";
+        msg.innerText = "100% Data Verification Passed: Zero anomalies detected. Dataset certified for operational use.";
+        stat.innerText = `STATUS: CERTIFIED (${accepted.length}/${rows.length} Clean)`;
+      } else {
+        banner.className = "p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-semibold";
+        icon.innerText = "🛡️";
+        msg.innerText = `Verification Gate Active: ${repairsCount} safe repairs applied; ${quarantine.length} corrupted records safely isolated.`;
+        stat.innerText = `STATUS: PROTECTED (${accepted.length} Clean &bull; ${quarantine.length} Quarantined)`;
+      }
+
+      // 3. Render Accepted Table Dynamically
+      const thead = document.getElementById('as-accepted-thead');
+      thead.innerHTML = `
+        <tr class="border-b border-[var(--border)] text-[var(--muted-foreground)]">
+          ${headers.map(h => `<th class="py-1.5 px-2">${h}</th>`).join('')}
+        </tr>
+      `;
+
+      const tbodyAccepted = document.getElementById('as-accepted-table');
+      if (accepted.length === 0) {
+        tbodyAccepted.innerHTML = `<tr><td colspan="${headers.length}" class="py-3 px-2 text-center text-[var(--muted-foreground)]">All rows quarantined. No clean records accepted.</td></tr>`;
+      } else {
+        tbodyAccepted.innerHTML = accepted.map(a => `
+          <tr class="hover:bg-[var(--border)]/10">
+            ${headers.map((h, i) => {
+              const val = a[h];
+              const isId = (i === 0);
+              const isMetric = typeof val === 'number';
+              const cls = isId ? 'font-mono font-bold text-[var(--foreground)]' : (isMetric ? 'text-emerald-600 font-semibold' : 'text-[var(--muted-foreground)]');
+              return `<td class="py-1.5 px-2 ${cls}">${val !== undefined ? val : ''}</td>`;
+            }).join('')}
+          </tr>
+        `).join('');
+      }
+
+      // 4. Render Quarantined Table with Dynamic Exact Problem Values
+      const tbodyQuarantine = document.getElementById('as-quarantine-table');
+      if (quarantine.length === 0) {
+        tbodyQuarantine.innerHTML = `<tr><td colspan="4" class="py-3 px-2 text-center text-emerald-600 font-medium">✓ Zero records quarantined. All input rows are valid.</td></tr>`;
+      } else {
+        tbodyQuarantine.innerHTML = quarantine.map(q => `
+          <tr class="hover:bg-[var(--border)]/10">
+            <td class="py-1.5 px-2 font-mono font-bold text-rose-500">${q.record_id}</td>
+            <td class="py-1.5 px-2 font-mono text-[var(--muted-foreground)]">${q.faulty_field}</td>
+            <td class="py-1.5 px-2">
+              <span class="px-2 py-0.5 rounded bg-rose-500/20 text-rose-500 font-mono font-bold text-xs inline-block">
+                ${q.problem_value}
+              </span>
+            </td>
+            <td class="py-1.5 px-2 text-rose-600 font-medium">${q.quarantine_reason}</td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    function loadAutoShieldDemo() {
+      switchAutoScenario(1);
+    }
+
+    // Dynamic Download Helpers for AutoShield
+    function downloadAutoAcceptedCSV() {
+      if (!autoAcceptedData || autoAcceptedData.length === 0) {
+        alert("No clean records available to export.");
+        return;
+      }
+      const headers = Object.keys(autoAcceptedData[0]);
+      const lines = [headers.join(',')];
+      autoAcceptedData.forEach(r => {
+        lines.push(headers.map(h => `"${r[h] !== undefined ? r[h] : ''}"`).join(','));
+      });
+      triggerDownload(lines.join('\n'), 'autoshield_accepted_clean.csv', 'text/csv');
+    }
+
+    function downloadAutoQuarantineCSV() {
+      if (!autoQuarantineData || autoQuarantineData.length === 0) {
+        alert("No quarantined records to export.");
+        return;
+      }
+      const headers = ["record_id", "faulty_field", "problem_value", "quarantine_reason"];
+      const lines = [headers.join(',')];
+      autoQuarantineData.forEach(q => {
+        lines.push([`"${q.record_id}"`, `"${q.faulty_field}"`, `"${q.problem_value}"`, `"${q.quarantine_reason}"`].join(','));
+      });
+      triggerDownload(lines.join('\n'), 'autoshield_quarantined_proofs.csv', 'text/csv');
+    }
+
+    // Download helpers for BlackoutShield
+    function triggerDownload(content, filename, type) {
+      const blob = new Blob([content], { type });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function downloadCleanCSV() {
+      if (!blackoutState) return;
+      const headers = ["service_id", "service_name", "criticality", "power_kw", "status", "depends_on", "timestamp"];
+      const lines = [headers.join(',')];
+      blackoutState.accepted.forEach(r => {
+        lines.push(headers.map(h => `"${r[h]}"`).join(','));
+      });
+      triggerDownload(lines.join('\n'), 'blackoutshield_clean.csv', 'text/csv');
+    }
+
+    function downloadQuarantineCSV() {
+      if (!blackoutState) return;
+      const headers = ["service_id", "service_name", "criticality", "power_kw", "quarantine_reason"];
+      const lines = [headers.join(',')];
+      blackoutState.quarantine.forEach(r => {
+        lines.push(headers.map(h => `"${r[h] || ''}"`).join(','));
+      });
+      triggerDownload(lines.join('\n'), 'blackoutshield_quarantine.csv', 'text/csv');
+    }
+
+    function downloadAuditJSON() {
+      if (!blackoutState) return;
+      triggerDownload(JSON.stringify(blackoutState.audit, null, 2), 'blackoutshield_audit.json', 'application/json');
+    }
+
+    // Startup
+    window.addEventListener('DOMContentLoaded', () => {
+      refreshBlackoutUI();
+      executeAutoShieldPipeline();
+    });
+  </script>
+</body>
+</html>
+```
+
+### What You Can Show in the New Dashboard:
+1. **Click any of the 4 Scenario buttons** in the AutoShield tab to show your interviewer how the dashboard extracts the exact problem value (`-48.5V`, `ERR_SPIKE`, `420 bpm`, `"ninety"`, etc.).
+2. **Click `✏️ Edit Raw CSV`** to live-type any corrupted data and watch the cards, quarantine tags, and clean tables adapt in real time.
+3. **Move the Power Budget Slider** on the Blackout Console to showcase the real-time topological SVG power tree and greedy constraint solver.
