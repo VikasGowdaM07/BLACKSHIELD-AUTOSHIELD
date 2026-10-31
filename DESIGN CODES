@@ -1,0 +1,181 @@
+Prompt for Antigravity: upgrade BlackoutShield + AutoShield to v3.0 (Command Center)
+Paste this whole file together with your existing `dashboard\_interface\_2.html`.
+Instruction: Take the attached single-file prototype and apply EXACTLY the 6 edits below. Do not change anything else. Keep it one standalone HTML file. After editing, make sure the JavaScript has no syntax errors and that all existing tabs still work.
+Edit 1: Theme fallbacks (put before `</head>`)
+The original never defines its CSS variables, so add them, plus a light theme:
+```html
+<style>
+  :root{--background:#0b1220;--card:#111a2e;--foreground:#f1f5f9;--muted-foreground:#94a3b8;--border:#263349;--primary:#3b82f6}
+  :root\[data-theme="light"]{--background:#f1f5f9;--card:#ffffff;--foreground:#0f172a;--muted-foreground:#64748b;--border:#cbd5e1}
+  @media print{#toast-notify,nav,header button{display:none}}
+</style>
+```
+Also change the header badge text "Operational Prototype v2.5 (Debugged)" to "Operational Prototype v3.0 (Command Center)".
+Edit 2: Navigation buttons
+Inside the `<nav>`, insert these two buttons immediately BEFORE the `id="nav-pipeline"` button:
+```html
+<button id="nav-command" onclick="switchModule('command')" class="px-3 py-1.5 rounded-lg text-\[var(--muted-foreground)] hover:text-\[var(--foreground)] transition-all whitespace-nowrap">🧠 Command Center</button>
+<button onclick="toggleTheme()" class="px-3 py-1.5 rounded-lg text-\[var(--muted-foreground)] hover:text-\[var(--foreground)]" title="Toggle light/dark">🌓</button>
+```
+Edit 3: New module markup
+Insert this block immediately BEFORE `<main id="section-pipeline"`:
+```html
+  <main id="section-command" class="hidden flex flex-col gap-5">
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <div class="bg-\[var(--card)] border border-\[var(--border)] rounded-2xl p-5 flex flex-col gap-3 lg:col-span-2">
+        <div class="flex justify-between items-start gap-2"><div>
+          <h3 class="text-sm font-bold">📈 Capacity Planner (budget sweep 1–20 kW)</h3>
+          <p class="text-xs text-\[var(--muted-foreground)]">Runs the real solver at every budget so operators see the cheapest generator size that restores what matters.</p></div>
+          <span id="cc-min-badge" class="text-xs font-bold px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-500 border border-amber-500/30 whitespace-nowrap"></span></div>
+        <div id="cc-sweep" class="w-full overflow-x-auto"></div>
+        <div id="cc-insights" class="text-xs text-\[var(--muted-foreground)] flex flex-col gap-1"></div>
+      </div>
+      <div class="bg-\[var(--card)] border border-\[var(--border)] rounded-2xl p-5 flex flex-col gap-3">
+        <h3 class="text-sm font-bold">💥 Failure Injection (what-if)</h3>
+        <p class="text-xs text-\[var(--muted-foreground)]">Mark services as failed and watch the cascade at the current budget (<span id="cc-budget">8</span> kW).</p>
+        <div id="cc-fail-list" class="flex flex-wrap gap-1.5"></div>
+        <div id="cc-fail-result" class="text-xs leading-relaxed"></div>
+      </div>
+    </section>
+    <section class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <div class="bg-\[var(--card)] border border-\[var(--border)] rounded-2xl p-5 flex flex-col gap-3">
+        <div class="flex justify-between items-center"><h3 class="text-sm font-bold">▶ Restoration Replay</h3>
+          <button onclick="ccReplay()" class="text-xs py-1.5 px-3 rounded-lg bg-\[var(--background)] border border-\[var(--border)] hover:border-amber-500 font-medium">▶ Play</button></div>
+        <div class="w-full h-3 bg-\[var(--background)] border border-\[var(--border)] rounded-full overflow-hidden"><div id="cc-rp-bar" class="bg-amber-500 h-full transition-all" style="width:0%"></div></div>
+        <div id="cc-rp-log" class="text-xs flex flex-col gap-1.5 min-h-\[7rem]"><span class="text-\[var(--muted-foreground)]">Press Play to replay the dispatch order step by step.</span></div>
+      </div>
+      <div class="bg-\[var(--card)] border border-\[var(--border)] rounded-2xl p-5 flex flex-col gap-3">
+        <div class="flex justify-between items-center gap-2 flex-wrap"><h3 class="text-sm font-bold">🔐 Tamper-Evident Ledger (SHA-256 chain)</h3>
+          <div class="flex gap-1.5"><button onclick="ccVerify(false)" class="text-xs py-1.5 px-3 rounded-lg bg-\[var(--background)] border border-\[var(--border)] hover:border-amber-500 font-medium">Verify</button><button onclick="ccVerify(true)" class="text-xs py-1.5 px-3 rounded-lg bg-\[var(--background)] border border-\[var(--border)] hover:border-amber-500 font-medium">Simulate tamper</button></div></div>
+        <p class="text-xs text-\[var(--muted-foreground)]">Each audit event is hashed together with the previous hash. Editing any entry breaks every hash after it.</p>
+        <div id="cc-chain-status" class="text-xs font-bold"></div>
+        <div id="cc-chain" class="font-mono text-\[10px] flex flex-col gap-1 max-h-44 overflow-y-auto"></div>
+      </div>
+    </section>
+    <section class="bg-\[var(--card)] border border-\[var(--border)] rounded-2xl p-5 flex flex-col gap-3">
+      <div class="flex justify-between items-center flex-wrap gap-2"><div><h3 class="text-sm font-bold">📄 Situation Report (SITREP)</h3>
+        <p class="text-xs text-\[var(--muted-foreground)]">One-click handover brief with data trust, restored/unrestored services, quarantine reasons and ledger fingerprint.</p></div>
+        <div class="flex gap-1.5"><button onclick="ccCopySitrep()" class="text-xs py-1.5 px-3 rounded-lg bg-\[var(--background)] border border-\[var(--border)] hover:border-amber-500 font-medium">📋 Copy</button><button onclick="ccDownloadSitrep()" class="text-xs py-1.5 px-3 rounded-lg bg-\[var(--background)] border border-\[var(--border)] hover:border-amber-500 font-medium">📥 Download .md</button><button onclick="window.print()" class="text-xs py-1.5 px-3 rounded-lg bg-\[var(--background)] border border-\[var(--border)] hover:border-amber-500 font-medium">🖨 Print / PDF</button></div></div>
+      <pre id="cc-sitrep" class="text-\[11px] bg-\[var(--background)] border border-\[var(--border)] rounded-xl p-3 overflow-x-auto whitespace-pre-wrap max-h-72"></pre>
+    </section>
+  </main>
+```
+Edit 4: Wire the module into existing functions
+In `switchModule`, change the module list `\['blackout','autoshield','pipeline','pitch']` to `\['blackout','autoshield','command','pipeline','pitch']`.
+In `refreshBlackoutUI`, right after the line `renderTopologySVG(accepted, recoveryList, quarantine);` add:
+```js
+if (typeof ccRefresh === 'function') ccRefresh();
+```
+Edit 5: New JavaScript
+Paste this inside the existing `<script>` tag, right before the `// Safe notification toast helper` comment:
+```js
+    // ========================================================
+    // COMMAND CENTER (v3.0)
+    // ========================================================
+    let ccFailed = new Set(), ccChain = \[], ccTimer = null;
+    function toggleTheme(){const r=document.documentElement;r.dataset.theme=r.dataset.theme==='light'?'dark':'light';}
+    const esc = t => String(t).replace(/\[\&<>"]/g, c => ({'\&':'\&amp;','<':'\&lt;','>':'\&gt;','"':'\&quot;'}\[c]));
+
+    function ccRefresh(){
+      if(!blackoutState) return;
+      const acc = blackoutState.accepted;
+      ccFailed = new Set(\[...ccFailed].filter(id => acc.some(a => a.service\_id === id)));
+      document.getElementById('cc-budget').innerText = currentPowerBudget;
+      ccSweep(acc); ccFailUI(acc); ccBuildChain().then(()=>ccVerify(false,true)); ccSitrep();
+    }
+
+    function ccSweep(acc){
+      const pts=\[]; for(let b=1;b<=20;b++){const r=runSimulation(acc,b);pts.push({b,n:r.summary.restored\_count,kw:r.summary.power\_used\_kw});}
+      const total=acc.length, W=560,H=170,L=30,B=24;
+      const x=b=>L+(b-1)\*(W-L-10)/19, y=n=>H-B-(total?n/total:0)\*(H-B-12);
+      const line=pts.map((p,i)=>(i?'L':'M')+x(p.b)+','+y(p.n)).join(' ');
+      const cur=pts\[currentPowerBudget-1];
+      const full=pts.find(p=>p.n===total);
+      const crit5=acc.filter(a=>a.criticality===5);
+      const c5=pts.find(p=>{const r=runSimulation(acc,p.b);return crit5.every(c=>r.recoveryList.find(x=>x.service\_id===c.service\_id).recovery\_result==='RESTORED');});
+      document.getElementById('cc-sweep').innerHTML=`<svg viewBox="0 0 ${W} ${H}" class="w-full min-w-\[420px]">
+        ${\[0,.5,1].map(f=>`<line x1="${L}" x2="${W-10}" y1="${y(total\*f)}" y2="${y(total\*f)}" stroke="var(--border)" stroke-dasharray="3 3"/><text x="2" y="${y(total\*f)+3}" font-size="9" fill="var(--muted-foreground)">${Math.round(total\*f)}</text>`).join('')}
+        <path d="${line}" fill="none" stroke="#f59e0b" stroke-width="2.5"/>
+        ${pts.map(p=>`<circle cx="${x(p.b)}" cy="${y(p.n)}" r="${p.b===currentPowerBudget?5:2.5}" fill="${p.b===currentPowerBudget?'#10b981':'#f59e0b'}" style="cursor:pointer" onclick="setBudget(${p.b});document.getElementById('budget-slider').value=${p.b}"><title>${p.b} kW → ${p.n}/${total} restored</title></circle>`).join('')}
+        ${pts.filter(p=>p.b%2===0).map(p=>`<text x="${x(p.b)}" y="${H-8}" font-size="9" text-anchor="middle" fill="var(--muted-foreground)">${p.b}</text>`).join('')}
+        <text x="${W-10}" y="${H-8}" font-size="9" text-anchor="end" fill="var(--muted-foreground)">kW</text></svg>`;
+      document.getElementById('cc-min-badge').innerText = full ? `Full restore ≥ ${full.b} kW` : 'Full restore not reachable';
+      const jumps=pts.filter((p,i)=>i\&\&p.n>pts\[i-1].n).map(p=>`${p.b} kW (+${p.n-pts\[p.b-2].n})`);
+      document.getElementById('cc-insights').innerHTML=\[
+        c5?`• All criticality-5 services are restored from <b class="text-\[var(--foreground)]">${c5.b} kW</b>.`:'• Criticality-5 services cannot all be restored within 20 kW.',
+        `• Click any point to jump the budget. Current: <b class="text-\[var(--foreground)]">${cur.n}/${total}</b> restored at ${currentPowerBudget} kW.`,
+        jumps.length?`• Biggest steps up: ${jumps.join(', ')}.`:''].filter(Boolean).join('<br>');
+    }
+
+    function ccFailUI(acc){
+      document.getElementById('cc-fail-list').innerHTML=acc.map(a=>`<button onclick="ccToggleFail('${a.service\_id}')" class="text-\[11px] font-mono px-2 py-1 rounded-lg border ${ccFailed.has(a.service\_id)?'bg-rose-500/15 border-rose-500/50 text-rose-500 line-through':'bg-\[var(--background)] border-\[var(--border)]'}">${esc(a.service\_id)}</button>`).join('');
+      const live=acc.filter(a=>!ccFailed.has(a.service\_id));
+      const r=runSimulation(live,currentPowerBudget), base=blackoutState.summary.restored\_count;
+      const lost=blackoutState.recoveryList.filter(b=>b.recovery\_result==='RESTORED'\&\&!r.recoveryList.some(x=>x.service\_id===b.service\_id\&\&x.recovery\_result==='RESTORED')\&\&!ccFailed.has(b.service\_id));
+      document.getElementById('cc-fail-result').innerHTML=ccFailed.size===0?'<span class="text-\[var(--muted-foreground)]">Click a service ID to fail it.</span>':
+        `<div>Restored: <b>${r.summary.restored\_count}</b> (baseline ${base}, <span class="${r.summary.restored\_count<base?'text-rose-500':'text-emerald-500'}">${r.summary.restored\_count-base>=0?'+':''}${r.summary.restored\_count-base}</span>)</div>
+         <div>Power used: ${r.summary.power\_used\_kw} kW · reserve ${r.summary.remaining\_kw} kW</div>
+         <div class="text-rose-500">${lost.length?'Cascade losses: '+lost.map(l=>esc(l.service\_id)).join(', '):'No additional cascade losses.'}</div>
+         <button onclick="ccFailed.clear();ccFailUI(blackoutState.accepted)" class="mt-1 text-\[11px] underline text-\[var(--muted-foreground)]">Clear all</button>`;
+    }
+    function ccToggleFail(id){ccFailed.has(id)?ccFailed.delete(id):ccFailed.add(id);ccFailUI(blackoutState.accepted);}
+
+    function ccReplay(){
+      clearInterval(ccTimer); if(!blackoutState) return;
+      const tl=blackoutState.timeline, log=document.getElementById('cc-rp-log'), bar=document.getElementById('cc-rp-bar'), bud=currentPowerBudget;
+      log.innerHTML=''; bar.style.width='0%'; let i=0;
+      if(!tl.length){log.innerHTML='<span class="text-rose-500">Nothing can be restored at this budget.</span>';return;}
+      ccTimer=setInterval(()=>{
+        if(i>=tl.length){clearInterval(ccTimer);log.insertAdjacentHTML('beforeend',`<span class="text-emerald-500 font-bold">✓ Replay complete: ${tl.length} services restored.</span>`);return;}
+        const t=tl\[i++]; bar.style.width=(t.running\_used/bud\*100)+'%';
+        log.insertAdjacentHTML('beforeend',`<div class="flex justify-between border border-\[var(--border)] rounded-lg px-2 py-1 bg-\[var(--background)]"><span><b>Step ${t.step}</b> ⚡ ${esc(t.id)} <span class="text-\[var(--muted-foreground)]">(crit ${t.crit})</span></span><span class="font-mono text-amber-500">+${t.power} kW → ${t.running\_used.toFixed(1)}/${bud}</span></div>`);
+      },700);
+    }
+
+    async function sha256(t){
+      try{const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t));return \[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');}
+      catch(e){let h=2166136261;for(const c of t){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return ('00000000'+(h>>>0).toString(16)).repeat(8);}
+    }
+    async function ccBuildChain(){
+      let prev='0'.repeat(64); ccChain=\[];
+      for(const a of blackoutState.audit){const entry={action:a.action,details:a.details,prev};const hash=await sha256(prev+'|'+a.action+'|'+a.details);ccChain.push({...entry,hash});prev=hash;}
+    }
+    async function ccVerify(tamper,silent){
+      const el=document.getElementById('cc-chain-status'); if(!ccChain.length) return;
+      const copy=ccChain.map(c=>({...c})); if(tamper\&\&copy.length>1) copy\[1].details+=' (edited)';
+      let prev='0'.repeat(64), bad=-1;
+      for(let i=0;i<copy.length;i++){const h=await sha256(prev+'|'+copy\[i].action+'|'+copy\[i].details); if(h!==copy\[i].hash\&\&bad<0) bad=i; prev=copy\[i].hash;}
+      document.getElementById('cc-chain').innerHTML=copy.map((c,i)=>`<div class="px-2 py-1 rounded border ${bad>=0\&\&i>=bad?'border-rose-500/50 text-rose-500':'border-\[var(--border)]'}">#${i} ${esc(c.action)} · ${c.hash.slice(0,16)}…</div>`).join('');
+      el.className='text-xs font-bold '+(bad<0?'text-emerald-500':'text-rose-500');
+      el.innerText=bad<0?`✓ Chain intact (${copy.length} entries, head ${copy\[copy.length-1].hash.slice(0,12)})`:`✗ TAMPER DETECTED at entry #${bad}; entries #${bad}–#${copy.length-1} fail verification`;
+      if(!silent) showToast(bad<0?'Ledger verified':'Tamper detected',bad<0);
+    }
+
+    function ccSitrepText(){
+      const b=blackoutState, sm=b.summary, head=ccChain.length?ccChain\[ccChain.length-1].hash.slice(0,16):'n/a';
+      const rs=b.recoveryList.filter(r=>r.recovery\_result==='RESTORED'), un=b.recoveryList.filter(r=>r.recovery\_result!=='RESTORED');
+      return `# BlackoutShield SITREP
+Generated: ${new Date().toISOString()}
+Dataset: ${document.getElementById('bs-file-label').innerText}
+
+## Data trust
+- Ingested ${b.rawRows.length} rows · accepted ${b.accepted.length} · quarantined ${b.quarantine.length}
+- Ledger head (SHA-256): ${head}
+
+## Recovery at ${sm.backup\_budget\_kw} kW
+- Restored ${sm.restored\_count}/${sm.total\_count} · used ${sm.power\_used\_kw} kW · reserve ${sm.remaining\_kw} kW
+${rs.map((r,i)=>`  ${i+1}. ${r.service\_id} (${r.service\_name}, crit ${r.criticality}, ${r.power\_kw} kW)`).join('\\n')||'  none'}
+
+## Not restored
+${un.map(r=>`- ${r.service\_id}: ${r.recovery\_result}`).join('\\n')||'- none'}
+
+## Quarantined records
+${b.quarantine.map(q=>`- Row ${q.raw\_idx} ${q.service\_id||'UNKNOWN'}: ${q.quarantine\_reason}`).join('\\n')||'- none'}
+`;}
+    function ccSitrep(){document.getElementById('cc-sitrep').innerText=ccSitrepText();}
+    function ccCopySitrep(){navigator.clipboard.writeText(ccSitrepText()).then(()=>showToast('SITREP copied'),()=>showToast('Copy blocked by browser',false));}
+    function ccDownloadSitrep(){triggerDownload(ccSitrepText(),'sitrep.md','text/markdown');}
+```
+Edit 6: Behaviour to verify
+Command Center tab shows: Capacity Planner (SVG line chart, clickable points set the budget), Failure Injection (click service IDs to fail them, shows cascade losses), Restoration Replay (Play button animates the dispatch order), Tamper-Evident Ledger (SHA-256 chain with Verify and Simulate tamper), and a SITREP (copy, download .md, print).
+Everything re-computes whenever the budget slider, CSV upload, or Reset Demo Data changes.
