@@ -1,0 +1,2326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BlackoutShield + AutoShield • Emergency Grid Operations Console</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <style>
+    /* Premium HUD aesthetics */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border, #334155); border-radius: 3px; }
+
+    @keyframes electricPulse {
+      from { stroke-dashoffset: 32; }
+      to { stroke-dashoffset: 0; }
+    }
+    .electric-flow-active {
+      animation: electricPulse 1.1s linear infinite;
+    }
+    @keyframes generatorSpin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .generator-spin {
+      transform-origin: center;
+      animation: generatorSpin 6s linear infinite;
+    }
+    @keyframes pulseGlowGreen {
+      0%, 100% { filter: drop-shadow(0 0 4px rgba(16, 185, 129, 0.45)); }
+      50% { filter: drop-shadow(0 0 14px rgba(16, 185, 129, 0.85)); }
+    }
+    .glow-green {
+      animation: pulseGlowGreen 2.2s infinite ease-in-out;
+    }
+    .badge-restored {
+      background: rgba(16, 185, 129, 0.12);
+      color: #10b981;
+      border: 1px solid rgba(16, 185, 129, 0.35);
+    }
+    .badge-insufficient {
+      background: rgba(245, 158, 11, 0.12);
+      color: #f59e0b;
+      border: 1px solid rgba(245, 158, 11, 0.35);
+    }
+    .badge-waiting {
+      background: rgba(59, 130, 246, 0.12);
+      color: #3b82f6;
+      border: 1px solid rgba(59, 130, 246, 0.35);
+    }
+    .badge-quarantine {
+      background: rgba(239, 68, 68, 0.12);
+      color: #ef4444;
+      border: 1px solid rgba(239, 68, 68, 0.35);
+    }
+    .nav-btn-active {
+      background: var(--card, #111a2e);
+      color: var(--foreground, #f1f5f9);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+      font-weight: 700;
+      border: 1px solid var(--border, #263349);
+    }
+    .tab-btn-active {
+      border-bottom: 2px solid var(--primary, #3b82f6);
+      color: var(--primary, #3b82f6);
+      font-weight: 700;
+    }
+  </style>
+  <style>
+    :root{--background:#0b1220;--card:#111a2e;--foreground:#f1f5f9;--muted-foreground:#94a3b8;--border:#263349;--primary:#3b82f6}
+    :root[data-theme="light"]{--background:#f1f5f9;--card:#ffffff;--foreground:#0f172a;--muted-foreground:#64748b;--border:#cbd5e1}
+    @media print{#toast-notify,nav,header button{display:none}}
+  </style>
+
+  <style id="trustgrid-styles">
+    #section-trustgrid{--tg-ok:#10b981;--tg-warn:#f59e0b;--tg-bad:#ef4444;--tg-acc:#3b82f6;--tg-chip:rgba(148,163,184,.14)}
+    #section-trustgrid h2{font-size:15px;font-weight:700;margin:0 0 8px}
+    #section-trustgrid .tg-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px}
+    #section-trustgrid .tg-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    #section-trustgrid .tg-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+    #section-trustgrid .tg-kpi{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px 12px}
+    #section-trustgrid .tg-kpi b{display:block;font:700 22px ui-monospace,monospace}
+    #section-trustgrid .tg-kpi span{color:var(--muted-foreground);font-size:12px}
+    #section-trustgrid textarea{width:100%;min-height:130px;background:var(--background);color:var(--foreground);border:1px solid var(--border);border-radius:8px;padding:8px;font:12px/1.4 ui-monospace,monospace}
+    #section-trustgrid button{background:var(--tg-chip);color:var(--foreground);border:1px solid var(--border);border-radius:8px;padding:4px 10px;font-size:12px;cursor:pointer}
+    #section-trustgrid button.on{background:var(--primary);color:#fff;border-color:var(--primary)}
+    #section-trustgrid .scroll{overflow-x:auto}
+    #section-trustgrid table{border-collapse:collapse;width:100%;font-size:12.5px}
+    #section-trustgrid th,#section-trustgrid td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:top}
+    #section-trustgrid th{color:var(--muted-foreground);font-weight:600}
+    #section-trustgrid .tag{display:inline-block;border-radius:99px;padding:1px 8px;font-size:11px;font-weight:600;border:1px solid currentColor}
+    #section-trustgrid .ok{color:var(--tg-ok)}#section-trustgrid .warn{color:var(--tg-warn)}#section-trustgrid .bad{color:var(--tg-bad)}#section-trustgrid .acc{color:var(--tg-acc)}
+    #section-trustgrid .mut,#section-trustgrid .note{color:var(--muted-foreground)}#section-trustgrid .note{font-size:12px}
+    #section-trustgrid .bar{height:6px;background:var(--tg-chip);border-radius:3px;min-width:60px}#section-trustgrid .bar i{display:block;height:100%;border-radius:3px}
+    #section-trustgrid .tg-two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    @media(max-width:800px){#section-trustgrid .tg-two{grid-template-columns:1fr}}
+  </style>
+</head>
+<body class="bg-[var(--background)] text-[var(--foreground)] antialiased p-3 md:p-6 flex flex-col gap-5">
+
+  <!-- ==================== FLOATING NOTIFICATION TOAST ==================== -->
+  <div id="toast-notify" class="fixed top-5 right-5 z-50 transform transition-all duration-300 translate-y-[-100px] opacity-0 pointer-events-none bg-[var(--card)] border border-emerald-500/50 text-[var(--foreground)] px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2.5 text-xs">
+    <span class="text-base" id="toast-icon">✓</span>
+    <span id="toast-text" class="font-medium">Action completed successfully</span>
+  </div>
+
+  <!-- ==================== TOP COMMAND BAR ==================== -->
+  <header class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 md:p-5 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+    <div class="flex items-center gap-3.5">
+      <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500/20 to-emerald-500/20 border border-amber-500/30 flex items-center justify-center text-2xl shadow-inner">
+        ⚡
+      </div>
+      <div>
+        <div class="flex flex-wrap items-center gap-2">
+          <h1 class="text-lg md:text-xl font-bold tracking-tight text-[var(--foreground)]">BlackoutShield + AutoShield</h1>
+          <span class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/30 font-semibold flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            Operational Prototype v3.0 (Command Center)
+          </span>
+        </div>
+        <p class="text-xs text-[var(--muted-foreground)] mt-0.5">
+          Emergency Grid Decision Support & Proof-Carrying Data Cleansing Engine
+        </p>
+      </div>
+    </div>
+
+    <!-- Mode Selector Navigation -->
+    <nav class="flex items-center bg-[var(--background)] border border-[var(--border)] rounded-xl p-1 gap-1 text-xs self-start lg:self-center overflow-x-auto max-w-full">
+      <button id="nav-blackout" onclick="switchModule('blackout')" class="nav-btn-active px-3 py-1.5 rounded-lg transition-all whitespace-nowrap">
+        ⚡ Blackout Recovery Console
+      </button>
+      <button id="nav-autoshield" onclick="switchModule('autoshield')" class="px-3 py-1.5 rounded-lg text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-all whitespace-nowrap">
+        🛡️ AutoShield Data Cleanser
+      </button>
+      <button id="nav-command" onclick="switchModule('command')" class="px-3 py-1.5 rounded-lg text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-all whitespace-nowrap">🧠 Command Center</button>
+      <button onclick="toggleTheme()" class="px-3 py-1.5 rounded-lg text-[var(--muted-foreground)] hover:text-[var(--foreground)]" title="Toggle light/dark">🌓</button>
+      <button id="nav-pipeline" onclick="switchModule('pipeline')" class="px-3 py-1.5 rounded-lg text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-all whitespace-nowrap">
+        🔗 End-to-End Pipeline
+      </button>
+      <button id="nav-pitch" onclick="switchModule('pitch')" class="px-3 py-1.5 rounded-lg text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-all whitespace-nowrap">
+        🎯 Hackathon Demo & Q&A
+      </button>
+      <button id="nav-trustgrid" onclick="switchModule('trustgrid')" class="px-3 py-1.5 rounded-lg text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-all whitespace-nowrap">
+        🛡️ TrustGrid: Plausible-but-Wrong
+      </button>
+    </nav>
+  </header>
+
+  <!-- ======================================================== -->
+  <!-- MODULE 1: BLACKOUTSHIELD GRID OPERATIONS CONSOLE         -->
+  <!-- ======================================================== -->
+  <main id="section-blackout" class="flex flex-col gap-5">
+
+    <!-- DATA VALIDATION HEALTH BREAKDOWN -->
+    <section class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-sm flex flex-col gap-4">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-[var(--border)] pb-3">
+        <div>
+          <h2 class="text-sm font-bold text-[var(--foreground)] flex items-center gap-2">
+            <span>Data Ingestion & Integrity Gate</span>
+            <span class="text-xs px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-500 border border-emerald-500/30 font-semibold">Auto-Protected</span>
+          </h2>
+          <p class="text-xs text-[var(--muted-foreground)] mt-0.5">
+            Source dataset: <span class="font-semibold text-[var(--foreground)]" id="bs-file-label">city_emergency_services.csv (10 records ingested)</span>
+          </p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="loadDefaultBlackoutData()" class="text-xs py-1.5 px-3 rounded-lg bg-[var(--background)] border border-[var(--border)] hover:bg-[var(--border)]/30 font-medium transition-colors">
+            🔄 Reset Demo Data
+          </button>
+          <label class="text-xs py-1.5 px-3 rounded-lg bg-[var(--background)] border border-[var(--border)] hover:bg-[var(--border)]/30 font-medium transition-colors cursor-pointer text-center">
+            📂 Upload Custom CSV
+            <input type="file" id="bs-file-uploader" accept=".csv" class="hidden" onchange="uploadBlackoutCSV(event)">
+          </label>
+        </div>
+      </div>
+
+      <!-- Breakdown Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div class="bg-[var(--background)] border border-[var(--border)] rounded-xl p-3.5 flex flex-col justify-between">
+          <div class="flex items-center justify-between">
+            <span class="text-xs text-[var(--muted-foreground)] font-medium">Total Ingested</span>
+            <span class="text-xs px-1.5 py-0.5 rounded bg-slate-500/10 text-[var(--muted-foreground)]">100% Raw</span>
+          </div>
+          <div class="mt-2">
+            <div class="text-2xl font-bold text-[var(--foreground)]" id="metric-total-rows">8 <span class="text-xs font-normal text-[var(--muted-foreground)]">rows</span></div>
+            <div class="text-xs text-[var(--muted-foreground)] mt-0.5">Raw service records parsed</div>
+          </div>
+        </div>
+
+        <div class="bg-[var(--background)] border border-emerald-500/30 rounded-xl p-3.5 flex flex-col justify-between">
+          <div class="flex items-center justify-between">
+            <span class="text-xs text-emerald-500 font-semibold flex items-center gap-1">✓ Accepted Valid</span>
+            <span class="text-xs font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-500" id="metric-accepted-pct">75.0%</span>
+          </div>
+          <div class="mt-2">
+            <div class="text-2xl font-bold text-emerald-500" id="metric-accepted-count">6 <span class="text-xs font-normal text-[var(--muted-foreground)]">of 8 services</span></div>
+            <div class="text-xs text-[var(--muted-foreground)] mt-0.5">Passed all schema & integrity tests</div>
+          </div>
+        </div>
+
+        <div class="bg-[var(--background)] border border-rose-500/30 rounded-xl p-3.5 flex flex-col justify-between">
+          <div class="flex items-center justify-between">
+            <span class="text-xs text-rose-500 font-semibold flex items-center gap-1">⚠ Quarantined</span>
+            <span class="text-xs font-bold px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-500" id="metric-quarantine-pct">25.0%</span>
+          </div>
+          <div class="mt-2">
+            <div class="text-2xl font-bold text-rose-500" id="metric-quarantine-count">2 <span class="text-xs font-normal text-[var(--muted-foreground)]">of 8 rows</span></div>
+            <div class="text-xs text-[var(--muted-foreground)] mt-0.5">Isolated to prevent grid failure</div>
+          </div>
+        </div>
+
+        <div class="bg-[var(--background)] border border-amber-500/30 rounded-xl p-3.5 flex flex-col justify-between">
+          <div class="flex items-center justify-between">
+            <span class="text-xs text-amber-500 font-semibold">Data Trust Score</span>
+            <span class="text-xs px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 font-bold">HEALTHY</span>
+          </div>
+          <div class="mt-2">
+            <div class="text-2xl font-bold text-amber-500" id="metric-health-score">75%</div>
+            <div class="w-full bg-[var(--border)] h-1.5 rounded-full overflow-hidden mt-1.5">
+              <div id="metric-health-bar" class="bg-gradient-to-r from-emerald-500 to-amber-500 h-full rounded-full transition-all" style="width: 75%;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quarantine Reasons Ledger -->
+      <div class="bg-[var(--background)] border border-[var(--border)] rounded-xl p-3 flex flex-col gap-2">
+        <span class="text-xs font-semibold text-[var(--foreground)] flex items-center gap-1.5">
+          <span class="text-rose-500">🛡️</span>
+          Quarantine Reasons Breakdown (rows rejected by format checks):
+        </span>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs" id="quarantine-reasons-cards"></div>
+      </div>
+      <div class="bg-[var(--background)] border border-amber-500/30 rounded-xl p-3 flex flex-col gap-2">
+        <span class="text-xs font-semibold text-[var(--foreground)]">🔍 Plausibility Review Queue: records that pass every format check but look wrong. Nothing is silently discarded; every decision is reversible and shows its impact on the plan.</span>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs" id="review-queue"></div>
+      </div>
+    </section>
+
+    <!-- POWER DISPATCH STATION & PRESETS -->
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 flex flex-col justify-between gap-4">
+        <div>
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-bold text-[var(--foreground)] flex items-center gap-1.5">
+              <span>⚡ Backup Power Budget</span>
+            </h3>
+            <span class="text-base font-extrabold text-amber-500 bg-amber-500/10 px-3 py-1 rounded-lg border border-amber-500/20" id="budget-badge">
+              8 kW
+            </span>
+          </div>
+          <p class="text-xs text-[var(--muted-foreground)] mt-1">
+            Simulate blackout recovery with constrained backup generator capacity.
+          </p>
+        </div>
+
+        <div class="flex flex-col gap-2">
+          <div class="flex justify-between text-xs text-[var(--muted-foreground)] font-mono">
+            <span>1 kW (Minimum)</span>
+            <span>20 kW (Max)</span>
+          </div>
+          <input type="range" id="budget-slider" min="1" max="20" value="8" step="1" oninput="setBudget(this.value)" class="w-full accent-amber-500 cursor-pointer h-2 bg-[var(--background)] rounded-lg">
+        </div>
+
+        <div>
+          <span class="text-xs text-[var(--muted-foreground)] font-medium">Scenario Quick Presets:</span>
+          <div class="grid grid-cols-4 gap-1.5 mt-1.5">
+            <button id="preset-btn-4" onclick="setBudget(4)" class="text-xs py-1.5 rounded-lg bg-[var(--background)] border border-[var(--border)] hover:border-amber-500 hover:text-amber-500 font-medium transition-all text-center">
+              4 kW<br><span class="text-[11px] text-[var(--muted-foreground)]">Clinic only</span>
+            </button>
+            <button id="preset-btn-8" onclick="setBudget(8)" class="text-xs py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/40 text-amber-500 font-bold transition-all text-center">
+              8 kW<br><span class="text-[11px]">Standard</span>
+            </button>
+            <button id="preset-btn-11" onclick="setBudget(11)" class="text-xs py-1.5 rounded-lg bg-[var(--background)] border border-[var(--border)] hover:border-amber-500 hover:text-amber-500 font-medium transition-all text-center">
+              11 kW<br><span class="text-[11px] text-[var(--muted-foreground)]">+ Lights</span>
+            </button>
+            <button id="preset-btn-15" onclick="setBudget(15)" class="text-xs py-1.5 rounded-lg bg-[var(--background)] border border-[var(--border)] hover:border-amber-500 hover:text-amber-500 font-medium transition-all text-center">
+              15 kW<br><span class="text-[11px] text-[var(--muted-foreground)]">Full Grid</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="text-xs p-3 rounded-xl bg-[var(--background)] border border-[var(--border)] text-[var(--muted-foreground)] leading-relaxed">
+          <span class="font-bold text-[var(--foreground)]">Prioritization Rule:</span><br>
+          1. Dependencies satisfied first (PWR &rarr; dependents)<br>
+          2. Highest Criticality (Rank 5 to 1)<br>
+          3. Lowest Power Demand (kW tie-break)
+        </div>
+      </div>
+
+      <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 flex flex-col justify-between gap-4 lg:col-span-2">
+        <div class="flex items-center justify-between">
+          <h3 class="text-sm font-bold text-[var(--foreground)]">Live Recovery Status & Power Allocation</h3>
+          <span class="text-xs text-[var(--muted-foreground)]">Real-time greedy heuristic solver</span>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div class="bg-[var(--background)] border border-[var(--border)] rounded-xl p-3">
+            <span class="text-xs text-[var(--muted-foreground)]">Services Restored</span>
+            <div class="text-xl font-bold text-[var(--foreground)] mt-1" id="kpi-restored-count">4 / 6</div>
+            <div class="text-xs text-emerald-500 font-medium" id="kpi-restored-pct">66.7% operational</div>
+          </div>
+          <div class="bg-[var(--background)] border border-[var(--border)] rounded-xl p-3">
+            <span class="text-xs text-amber-500 font-semibold">Power Dispatched</span>
+            <div class="text-xl font-bold text-amber-500 mt-1" id="kpi-used-kw">8.0 kW</div>
+            <div class="text-xs text-[var(--muted-foreground)]">of allocated budget</div>
+          </div>
+          <div class="bg-[var(--background)] border border-[var(--border)] rounded-xl p-3">
+            <span class="text-xs text-sky-500 font-semibold">Power Reserve</span>
+            <div class="text-xl font-bold text-sky-500 mt-1" id="kpi-left-kw">0.0 kW</div>
+            <div class="text-xs text-[var(--muted-foreground)]">available capacity</div>
+          </div>
+          <div class="bg-[var(--background)] border border-[var(--border)] rounded-xl p-3">
+            <span class="text-xs text-rose-500 font-semibold">Unrestored Load</span>
+            <div class="text-xl font-bold text-rose-500 mt-1" id="kpi-unrestored-count">2 services</div>
+            <div class="text-xs text-[var(--muted-foreground)]">awaiting power / deps</div>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-1.5">
+          <div class="flex justify-between text-xs font-medium">
+            <span>Power Dispatch Distribution:</span>
+            <span id="power-distribution-label" class="text-[var(--muted-foreground)]">8 kW used / 0 kW reserve</span>
+          </div>
+          <div class="w-full h-3 bg-[var(--background)] border border-[var(--border)] rounded-full overflow-hidden flex">
+            <div id="bar-used-power" class="bg-amber-500 h-full transition-all" style="width: 100%;"></div>
+            <div id="bar-idle-power" class="bg-sky-500 h-full transition-all" style="width: 0%;"></div>
+          </div>
+          <div class="flex items-center gap-4 text-xs text-[var(--muted-foreground)] pt-0.5">
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block"></span> Dispatched Load</span>
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-sky-500 inline-block"></span> Unallocated Reserve</span>
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span> Unmet Demands</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ELECTRICAL TOPOLOGY & TIMELINE -->
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 flex flex-col gap-3 lg:col-span-2">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--border)] pb-2.5">
+          <div>
+            <h3 class="text-sm font-bold text-[var(--foreground)] flex items-center gap-2">
+              <span>⚡ Interactive Electrical Grid Topology & Dynamic Flow</span>
+            </h3>
+            <p class="text-xs text-[var(--muted-foreground)]">
+              Green electric current flows only to restored facilities; unpowered circuits show open switches; quarantined rows have barrier locks.
+            </p>
+          </div>
+          <div class="flex flex-wrap items-center gap-3 text-xs">
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block shadow-sm"></span> <span class="text-emerald-500 font-bold">Restored (Flowing)</span></span>
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block shadow-sm"></span> <span class="text-amber-500 font-semibold">No Power (Cut Off)</span></span>
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block shadow-sm"></span> <span class="text-rose-500 font-semibold">Quarantined (Locked)</span></span>
+          </div>
+        </div>
+
+        <!-- High-Definition Grid Topology Display -->
+        <div id="topology-canvas-wrap" class="w-full bg-[var(--background)] border border-[var(--border)] rounded-xl relative overflow-hidden flex items-center justify-center p-3 min-h-[360px]">
+          <!-- Injected via renderTopologySVG -->
+        </div>
+      </div>
+
+      <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 flex flex-col gap-3">
+        <div class="flex items-center justify-between">
+          <h3 class="text-sm font-bold text-[var(--foreground)]">Chronological Dispatch Order</h3>
+          <span class="text-xs px-2 py-0.5 rounded bg-[var(--background)] border border-[var(--border)] text-[var(--muted-foreground)] font-mono">Step sequence</span>
+        </div>
+        <p class="text-xs text-[var(--muted-foreground)]">How the engine restored services step-by-step:</p>
+        <div class="flex flex-col gap-2 overflow-y-auto max-h-80 pr-1" id="dispatch-timeline"></div>
+      </div>
+    </section>
+
+    <!-- DATA TABS -->
+    <section class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 flex flex-col gap-4">
+      <div class="flex items-center border-b border-[var(--border)] gap-6 text-xs pb-2 overflow-x-auto">
+        <button onclick="switchTab('plan')" id="tab-btn-plan" class="tab-btn-active py-1 whitespace-nowrap">
+          📋 Recovery Plan Results
+        </button>
+        <button onclick="switchTab('clean')" id="tab-btn-clean" class="text-[var(--muted-foreground)] py-1 hover:text-[var(--foreground)] whitespace-nowrap">
+          ✓ Clean Accepted Services (<span id="tab-count-clean">6</span>)
+        </button>
+        <button onclick="switchTab('quarantine')" id="tab-btn-quarantine" class="text-[var(--muted-foreground)] py-1 hover:text-[var(--foreground)] whitespace-nowrap">
+          ⚠ Quarantined Rows (<span id="tab-count-quarantine">2</span>)
+        </button>
+        <button onclick="switchTab('audit')" id="tab-btn-audit" class="text-[var(--muted-foreground)] py-1 hover:text-[var(--foreground)] whitespace-nowrap">
+          📜 Audit Trail JSON
+        </button>
+      </div>
+
+      <!-- Tab 1: Recovery Plan -->
+      <div id="tab-panel-plan" class="flex flex-col gap-3">
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs text-left border-collapse">
+            <thead>
+              <tr class="border-b border-[var(--border)] text-[var(--muted-foreground)]">
+                <th class="py-2.5 px-3">Service ID</th>
+                <th class="py-2.5 px-3">Service Name</th>
+                <th class="py-2.5 px-3">Criticality</th>
+                <th class="py-2.5 px-3">Power Demanded</th>
+                <th class="py-2.5 px-3">Priority Score</th>
+                <th class="py-2.5 px-3">Dependency</th>
+                <th class="py-2.5 px-3">Recovery Status</th>
+              </tr>
+            </thead>
+            <tbody id="plan-table-body" class="divide-y divide-[var(--border)]"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tab 2: Clean Data -->
+      <div id="tab-panel-clean" class="hidden flex flex-col gap-3">
+        <div class="flex justify-between items-center">
+          <p class="text-xs text-[var(--muted-foreground)]">Trustworthy records that passed all schema, type, range, duplicate, and dependency checks.</p>
+          <button onclick="downloadCleanCSV()" class="text-xs px-3 py-1.5 rounded-lg bg-[var(--background)] border border-[var(--border)] hover:bg-[var(--border)]/20 font-medium">
+            📥 Download Clean CSV
+          </button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs text-left border-collapse">
+            <thead>
+              <tr class="border-b border-[var(--border)] text-[var(--muted-foreground)]">
+                <th class="py-2 px-3">service_id</th>
+                <th class="py-2 px-3">service_name</th>
+                <th class="py-2 px-3">criticality</th>
+                <th class="py-2 px-3">power_kw</th>
+                <th class="py-2 px-3">status</th>
+                <th class="py-2 px-3">depends_on</th>
+                <th class="py-2 px-3">timestamp</th>
+              </tr>
+            </thead>
+            <tbody id="clean-table-body" class="divide-y divide-[var(--border)]"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tab 3: Quarantine Records -->
+      <div id="tab-panel-quarantine" class="hidden flex flex-col gap-3">
+        <div class="flex justify-between items-center">
+          <p class="text-xs text-[var(--muted-foreground)]">Isolated rows with specific rule violations. Preserved without guessing or hallucinating missing facts.</p>
+          <button onclick="downloadQuarantineCSV()" class="text-xs px-3 py-1.5 rounded-lg bg-[var(--background)] border border-[var(--border)] hover:bg-[var(--border)]/20 font-medium">
+            📥 Download Quarantine CSV
+          </button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs text-left border-collapse">
+            <thead>
+              <tr class="border-b border-[var(--border)] text-[var(--muted-foreground)]">
+                <th class="py-2 px-3">service_id</th>
+                <th class="py-2 px-3">service_name</th>
+                <th class="py-2 px-3">criticality</th>
+                <th class="py-2 px-3">power_kw</th>
+                <th class="py-2 px-3">Quarantine Justification</th>
+              </tr>
+            </thead>
+            <tbody id="quarantine-table-body" class="divide-y divide-[var(--border)]"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tab 4: Audit Trail -->
+      <div id="tab-panel-audit" class="hidden flex flex-col gap-3">
+        <div class="flex justify-between items-center">
+          <p class="text-xs text-[var(--muted-foreground)]">Verifiable event log detailing all sanitization and quarantine actions.</p>
+          <button onclick="downloadAuditJSON()" class="text-xs px-3 py-1.5 rounded-lg bg-[var(--background)] border border-[var(--border)] hover:bg-[var(--border)]/20 font-medium">
+            📥 Download Audit JSON
+          </button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs text-left border-collapse">
+            <thead>
+              <tr class="border-b border-[var(--border)] text-[var(--muted-foreground)]">
+                <th class="py-2 px-3">Action Event</th>
+                <th class="py-2 px-3">Audit Details</th>
+              </tr>
+            </thead>
+            <tbody id="audit-table-body" class="divide-y divide-[var(--border)]"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ======================================================== -->
+  <!-- MODULE 2: AUTOSHIELD DATA QUALITY MODULE (DYNAMIC)       -->
+  <!-- ======================================================== -->
+  <main id="section-autoshield" class="hidden flex flex-col gap-5">
+    <section class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 flex flex-col gap-4">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-[var(--border)] pb-3">
+        <div>
+          <h2 class="text-sm font-bold text-[var(--foreground)] flex items-center gap-2">
+            <span>AutoShield &bull; Proof-Carrying Data Cleanser</span>
+            <span class="text-xs px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-500 border border-emerald-500/30 font-semibold">Deterministic Repairs</span>
+          </h2>
+          <p class="text-xs text-[var(--muted-foreground)] mt-0.5">
+            Dynamic issue detection & proof-carrying isolation: values change dynamically based on the exact problem and dataset.
+          </p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <button onclick="toggleAutoEditor()" class="text-xs py-1.5 px-3 rounded-lg bg-[var(--background)] border border-[var(--border)] hover:bg-[var(--border)]/30 font-medium flex items-center gap-1.5">
+            <span>✏️ Edit Raw CSV</span>
+          </button>
+          <label class="text-xs py-1.5 px-3 rounded-lg bg-[var(--background)] border border-[var(--border)] hover:bg-[var(--border)]/30 font-medium cursor-pointer flex items-center gap-1.5">
+            <span>📂 Upload CSV</span>
+            <input type="file" id="as-file-uploader" accept=".csv" class="hidden" onchange="uploadAutoShieldCSV(event)">
+          </label>
+          <button onclick="executeAutoShieldPipeline()" class="text-xs py-1.5 px-4 rounded-lg bg-emerald-600 text-white font-bold hover:bg-emerald-500 shadow-sm flex items-center gap-1">
+            <span>🛡️ Execute Pipeline</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Problem Scenario Switcher -->
+      <div class="bg-[var(--background)] border border-[var(--border)] rounded-xl p-3 flex flex-col gap-2">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold text-[var(--foreground)] flex items-center gap-1.5">
+            <span class="text-amber-500">🧪</span>
+            Test Problem Scenarios (Click to test different data corruption problems):
+          </span>
+          <span class="text-xs text-[var(--muted-foreground)]" id="as-active-scenario-name">Scenario 1: Attendance Outliers & Typo</span>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <button id="as-btn-scen-1" onclick="switchAutoScenario(1)" class="text-xs p-2 rounded-lg bg-amber-500/10 border border-amber-500/40 text-amber-500 font-bold text-left transition-all">
+            1. Attendance Dataset<br>
+            <span class="text-xs font-normal text-[var(--muted-foreground)]">'ninety', >100%, bad date, dup ID</span>
+          </button>
+          <button id="as-btn-scen-2" onclick="switchAutoScenario(2)" class="text-xs p-2 rounded-lg bg-[var(--card)] border border-[var(--border)] hover:border-amber-500 hover:text-amber-500 font-medium text-left transition-all">
+            2. Grid Telemetry Spikes<br>
+            <span class="text-xs font-normal text-[var(--muted-foreground)]">-48V, ERR_SPIKE, 999kV, dup sensor</span>
+          </button>
+          <button id="as-btn-scen-3" onclick="switchAutoScenario(3)" class="text-xs p-2 rounded-lg bg-[var(--card)] border border-[var(--border)] hover:border-amber-500 hover:text-amber-500 font-medium text-left transition-all">
+            3. Hospital ICU Vitals<br>
+            <span class="text-xs font-normal text-[var(--muted-foreground)]">420 bpm, null ID, SpO2 string</span>
+          </button>
+          <button id="as-btn-scen-4" onclick="switchAutoScenario(4)" class="text-xs p-2 rounded-lg bg-[var(--card)] border border-[var(--border)] hover:border-emerald-500 hover:text-emerald-500 font-medium text-left transition-all">
+            4. 100% Clean Grid<br>
+            <span class="text-xs font-normal text-[var(--muted-foreground)]">Zero defects &bull; 100% verified</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Live Raw Editor -->
+      <div id="as-editor-wrap" class="hidden flex flex-col gap-2 p-3 bg-[var(--background)] border border-amber-500/30 rounded-xl">
+        <div class="flex items-center justify-between text-xs">
+          <span class="font-bold text-amber-500">Live Raw Input Editor (Edit any value to see it update immediately):</span>
+          <span class="text-xs text-[var(--muted-foreground)]">Changes reflect immediately when you click Execute</span>
+        </div>
+        <textarea id="as-raw-textarea" rows="6" class="w-full bg-[var(--card)] border border-[var(--border)] rounded-lg p-2.5 font-mono text-xs text-[var(--foreground)] focus:outline-none focus:border-amber-500"></textarea>
+        <div class="flex justify-end gap-2">
+          <button onclick="toggleAutoEditor()" class="text-xs px-3 py-1 rounded bg-[var(--card)] border border-[var(--border)]">Close</button>
+          <button onclick="applyAutoTextareaAndRun()" class="text-xs px-3 py-1 rounded bg-amber-500 text-black font-bold hover:bg-amber-400">Apply & Re-run</button>
+        </div>
+      </div>
+
+      <!-- Comparison Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+        <div class="bg-[var(--background)] border border-[var(--border)] rounded-xl p-3">
+          <span class="text-xs text-[var(--muted-foreground)]">Input Raw Rows</span>
+          <div class="text-2xl font-bold text-[var(--foreground)] mt-1" id="as-raw-rows">8</div>
+          <span class="text-xs text-[var(--muted-foreground)]" id="as-raw-rows-sub">Parsed records</span>
+        </div>
+        <div class="bg-[var(--background)] border border-amber-500/30 rounded-xl p-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs text-amber-500 font-semibold">Detected Issues</span>
+            <span class="text-xs px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 font-bold" id="as-detected-pill">Total Anomalies</span>
+          </div>
+          <div class="text-2xl font-bold text-amber-500 mt-1" id="as-detected-issues">5</div>
+          <span class="text-xs text-[var(--muted-foreground)]" id="as-detected-sub">All anomalies discovered</span>
+        </div>
+        <div class="bg-[var(--background)] border border-emerald-500/30 rounded-xl p-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs text-emerald-500 font-semibold">Repairs Applied</span>
+            <span class="text-xs px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-500 font-bold" id="as-repairs-pct">Safe Cleans</span>
+          </div>
+          <div class="text-2xl font-bold text-emerald-500 mt-1" id="as-repairs-count">1</div>
+          <span class="text-xs text-[var(--muted-foreground)]" id="as-repairs-sub">Whitespace trimmed</span>
+        </div>
+        <div class="bg-[var(--background)] border border-rose-500/30 rounded-xl p-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs text-rose-500 font-semibold">Strict Quarantine</span>
+            <span class="text-xs px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-500 font-bold" id="as-quarantined-pct">Isolated</span>
+          </div>
+          <div class="text-2xl font-bold text-rose-500 mt-1" id="as-quarantined-count">4</div>
+          <span class="text-xs text-[var(--muted-foreground)]">Zero guessing allowed</span>
+        </div>
+      </div>
+
+      <!-- Verification Banner -->
+      <div id="as-verification-banner" class="p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-semibold">
+        <div class="flex items-center gap-2">
+          <span class="text-base" id="as-gate-icon">🛡️</span>
+          <span id="as-gate-message">Verification Gate Passed: Candidate output was re-validated against all schema rules before acceptance.</span>
+        </div>
+        <span class="px-2.5 py-1 rounded-md bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 font-mono text-center" id="as-gate-status">STATUS: PUBLISHED (4 of 8 Valid)</span>
+      </div>
+
+      <!-- AutoShield Tables -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div class="bg-[var(--background)] border border-emerald-500/30 rounded-xl p-4 flex flex-col gap-2">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-bold text-emerald-500 flex items-center gap-1.5">
+              <span>✓ Clean Accepted Records</span>
+              <span class="text-xs px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 font-bold" id="as-accepted-badge">4 valid</span>
+            </h4>
+            <button onclick="downloadAutoAcceptedCSV()" class="text-xs px-2.5 py-1 rounded-lg bg-[var(--card)] border border-[var(--border)] hover:bg-[var(--border)]/30 font-medium transition-colors">
+              📥 Download CSV
+            </button>
+          </div>
+          <div class="overflow-x-auto max-h-56">
+            <table class="w-full text-xs text-left border-collapse">
+              <thead id="as-accepted-thead"></thead>
+              <tbody id="as-accepted-table" class="divide-y divide-[var(--border)]"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="bg-[var(--background)] border border-rose-500/30 rounded-xl p-4 flex flex-col gap-2">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-bold text-rose-500 flex items-center gap-1.5">
+              <span>⚠ Quarantined Records & Exact Problem Values</span>
+              <span class="text-xs px-1.5 py-0.5 rounded-full bg-rose-500/10 text-rose-500 font-bold" id="as-quarantine-badge">4 isolated</span>
+            </h4>
+            <button onclick="downloadAutoQuarantineCSV()" class="text-xs px-2.5 py-1 rounded-lg bg-[var(--card)] border border-[var(--border)] hover:bg-[var(--border)]/30 font-medium transition-colors">
+              📥 Download CSV
+            </button>
+          </div>
+          <div class="overflow-x-auto max-h-56">
+            <table class="w-full text-xs text-left border-collapse">
+              <thead>
+                <tr class="border-b border-[var(--border)] text-[var(--muted-foreground)]">
+                  <th class="py-1.5 px-2">Record ID</th>
+                  <th class="py-1.5 px-2">Offending Field</th>
+                  <th class="py-1.5 px-2">Problem Value</th>
+                  <th class="py-1.5 px-2">Quarantine Reason & Rule</th>
+                </tr>
+              </thead>
+              <tbody id="as-quarantine-table" class="divide-y divide-[var(--border)]"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ======================================================== -->
+  <!-- MODULE: COMMAND CENTER (v3.0)                            -->
+  <!-- ======================================================== -->
+  <main id="section-command" class="hidden flex flex-col gap-5">
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 flex flex-col gap-3 lg:col-span-2">
+        <div class="flex justify-between items-start gap-2">
+          <div>
+            <h3 class="text-sm font-bold">📈 Capacity Planner (budget sweep 1–20 kW)</h3>
+            <p class="text-xs text-[var(--muted-foreground)]">Runs the real solver at every budget so operators see the cheapest generator size that restores what matters.</p>
+          </div>
+          <span id="cc-min-badge" class="text-xs font-bold px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-500 border border-amber-500/30 whitespace-nowrap"></span>
+        </div>
+        <div id="cc-sweep" class="w-full overflow-x-auto"></div>
+        <div id="cc-insights" class="text-xs text-[var(--muted-foreground)] flex flex-col gap-1"></div>
+      </div>
+      <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 flex flex-col gap-3">
+        <h3 class="text-sm font-bold">💥 Failure Injection (what-if)</h3>
+        <p class="text-xs text-[var(--muted-foreground)]">Mark services as failed and watch the cascade at the current budget (<span id="cc-budget">8</span> kW).</p>
+        <div id="cc-fail-list" class="flex flex-wrap gap-1.5"></div>
+        <div id="cc-fail-result" class="text-xs leading-relaxed"></div>
+      </div>
+    </section>
+    <section class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 flex flex-col gap-3">
+        <div class="flex justify-between items-center">
+          <h3 class="text-sm font-bold">▶ Restoration Replay</h3>
+          <button onclick="ccReplay()" class="text-xs py-1.5 px-3 rounded-lg bg-[var(--background)] border border-[var(--border)] hover:border-amber-500 font-medium">▶ Play</button>
+        </div>
+        <div class="w-full h-3 bg-[var(--background)] border border-[var(--border)] rounded-full overflow-hidden">
+          <div id="cc-rp-bar" class="bg-amber-500 h-full transition-all" style="width:0%"></div>
+        </div>
+        <div id="cc-rp-log" class="text-xs flex flex-col gap-1.5 min-h-[7rem]"><span class="text-[var(--muted-foreground)]">Press Play to replay the dispatch order step by step.</span></div>
+      </div>
+      <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 flex flex-col gap-3">
+        <div class="flex justify-between items-center gap-2 flex-wrap">
+          <h3 class="text-sm font-bold">🔐 Tamper-Evident Ledger (SHA-256 chain)</h3>
+          <div class="flex gap-1.5">
+            <button onclick="ccVerify(false)" class="text-xs py-1.5 px-3 rounded-lg bg-[var(--background)] border border-[var(--border)] hover:border-amber-500 font-medium">Verify</button>
+            <button onclick="ccVerify(true)" class="text-xs py-1.5 px-3 rounded-lg bg-[var(--background)] border border-[var(--border)] hover:border-amber-500 font-medium">Simulate tamper</button>
+          </div>
+        </div>
+        <p class="text-xs text-[var(--muted-foreground)]">Each audit event is hashed together with the previous hash. Editing any entry breaks every hash after it.</p>
+        <div id="cc-chain-status" class="text-xs font-bold"></div>
+        <div id="cc-chain" class="font-mono text-xs flex flex-col gap-1 max-h-44 overflow-y-auto"></div>
+      </div>
+    </section>
+    <section class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 flex flex-col gap-3">
+      <div class="flex justify-between items-center flex-wrap gap-2">
+        <div>
+          <h3 class="text-sm font-bold">📄 Situation Report (SITREP)</h3>
+          <p class="text-xs text-[var(--muted-foreground)]">One-click handover brief with data trust, restored/unrestored services, quarantine reasons and ledger fingerprint.</p>
+        </div>
+        <div class="flex gap-1.5">
+          <button onclick="ccCopySitrep()" class="text-xs py-1.5 px-3 rounded-lg bg-[var(--background)] border border-[var(--border)] hover:border-amber-500 font-medium">📋 Copy</button>
+          <button onclick="ccDownloadSitrep()" class="text-xs py-1.5 px-3 rounded-lg bg-[var(--background)] border border-[var(--border)] hover:border-amber-500 font-medium">📥 Download .md</button>
+          <button onclick="window.print()" class="text-xs py-1.5 px-3 rounded-lg bg-[var(--background)] border border-[var(--border)] hover:border-amber-500 font-medium">🖨 Print / PDF</button>
+        </div>
+      </div>
+      <pre id="cc-sitrep" class="text-xs bg-[var(--background)] border border-[var(--border)] rounded-xl p-3 overflow-x-auto whitespace-pre-wrap max-h-72"></pre>
+    </section>
+  </main>
+
+  <!-- ======================================================== -->
+  <!-- MODULE 3: END-TO-END PIPELINE                            -->
+  <!-- ======================================================== -->
+  <main id="section-pipeline" class="hidden flex flex-col gap-5">
+    <section class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 flex flex-col gap-4">
+      <h2 class="text-base font-bold text-[var(--foreground)]">End-to-End Pipeline: From Raw File to Safe Restoration</h2>
+      <p class="text-xs text-[var(--muted-foreground)]">
+        Demonstrates why data quality matters in life-critical infrastructure: corrupted records are safely quarantined so downstream solvers never make decisions on bad inputs.
+      </p>
+
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-2">
+        <div class="p-4 rounded-xl bg-[var(--background)] border border-[var(--border)] flex flex-col gap-2">
+          <span class="text-xs font-mono text-amber-500 font-bold">STAGE 1: INGEST</span>
+          <span class="font-bold text-sm text-[var(--foreground)]">8 Raw Records</span>
+          <p class="text-xs text-[var(--muted-foreground)]">Includes duplicate WIFI and CAMERA with invalid timestamp and non-numeric priority.</p>
+        </div>
+        <div class="p-4 rounded-xl bg-[var(--background)] border border-emerald-500/30 flex flex-col gap-2">
+          <span class="text-xs font-mono text-emerald-500 font-bold">STAGE 2: QUALITY GATE</span>
+          <span class="font-bold text-sm text-emerald-500">6 Clean &bull; 2 Quarantined</span>
+          <p class="text-xs text-[var(--muted-foreground)]">AutoShield guards: trims whitespace, upper-cases IDs, and sets aside the 2 poisoned records.</p>
+        </div>
+        <div class="p-4 rounded-xl bg-[var(--background)] border border-sky-500/30 flex flex-col gap-2">
+          <span class="text-xs font-mono text-sky-500 font-bold">STAGE 3: RESTORATION</span>
+          <span class="font-bold text-sm text-sky-400">4 Restored @ 8 kW</span>
+          <p class="text-xs text-[var(--muted-foreground)]">BlackoutShield restores PWR &rarr; CLINIC &rarr; COLD &rarr; ACCESS. Lights & WiFi hold in reserve.</p>
+        </div>
+        <div class="p-4 rounded-xl bg-[var(--background)] border border-purple-500/30 flex flex-col gap-2">
+          <span class="text-xs font-mono text-purple-500 font-bold">STAGE 4: PROOF LEDGER</span>
+          <span class="font-bold text-sm text-purple-400">100% Auditable</span>
+          <p class="text-xs text-[var(--muted-foreground)]">Every decision and quarantine reason is saved to an immutable JSON ledger for safety reviews.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ======================================================== -->
+  <!-- MODULE 4: HACKATHON DEMO & JUDGE Q&A                     -->
+  <!-- ======================================================== -->
+  <main id="section-pitch" class="hidden flex flex-col gap-5">
+    <section class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 flex flex-col gap-4">
+      <div class="flex items-center justify-between border-b border-[var(--border)] pb-3">
+        <h2 class="text-base font-bold text-[var(--foreground)]">Hackathon Judge Presentation Cheat Sheet</h2>
+        <span class="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-500 font-semibold">3-Minute Demo Playbook</span>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+        <div class="p-4 rounded-xl bg-[var(--background)] border border-[var(--border)] flex flex-col gap-2">
+          <span class="font-bold text-amber-500 text-sm">Judge: "What is genuinely unique here?"</span>
+          <p class="text-[var(--foreground)] leading-relaxed">
+            "Most systems either blindly trust bad input data or halt entirely. We pair conservative data repair and proof-carrying quarantine with a dependency-aware power recovery engine under limited backup power. We never hallucinate or guess bad data."
+          </p>
+        </div>
+        <div class="p-4 rounded-xl bg-[var(--background)] border border-[var(--border)] flex flex-col gap-2">
+          <span class="font-bold text-amber-500 text-sm">Judge: "Why not use AI to fix the bad rows?"</span>
+          <p class="text-[var(--foreground)] leading-relaxed">
+            "If a field contains 'ninety', an AI or regex cannot prove whether it meant 90, 19, or 90.0. In life-critical infrastructure, guessing can cause catastrophic failure. AutoShield quarantines untrusted records and exports proof evidence."
+          </p>
+        </div>
+        <div class="p-4 rounded-xl bg-[var(--background)] border border-[var(--border)] flex flex-col gap-2">
+          <span class="font-bold text-amber-500 text-sm">Judge: "Does it control actual power hardware?"</span>
+          <p class="text-[var(--foreground)] leading-relaxed">
+            "No. It is an in-memory software prototype with synthetic data. It is not connected to SCADA or physical grid hardware, and recovery uses a deterministic greedy heuristic rather than physics modeling."
+          </p>
+        </div>
+        <div class="p-4 rounded-xl bg-[var(--background)] border border-[var(--border)] flex flex-col gap-2">
+          <span class="font-bold text-amber-500 text-sm">Judge: "What would you build next?"</span>
+          <p class="text-[var(--foreground)] leading-relaxed">
+            "We would integrate mixed-integer programming (MIP) for optimal power scheduling, live SCADA sensor streaming, role-based access control, and cryptographic hardware signing for the audit ledger."
+          </p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ======================================================== -->
+  <!-- MODULE 6: TRUSTGRID (PLAUSIBLE-BUT-WRONG HURDLE SOLUTION)  -->
+  <!-- ======================================================== -->
+  <main id="section-trustgrid" class="hidden flex flex-col gap-5">
+    <div class="tg-card">
+      <h2>TrustGrid · Team 27 · Plausible but Wrong</h2>
+      <p class="note" style="margin:0">Quarantine is never deletion. Every suspicious record gets evidence, a trust score, a reversible decision, and a “what if I’m wrong?” impact on the recovery plan. Works on any CSV: normal behaviour is learned from the data itself.</p>
+    </div>
+    <div class="tg-card">
+      <div class="tg-row" style="margin-bottom:8px"><b>Dataset</b>
+        <button id="tg-p0" onclick="TG.preset(0)">City hospitals</button>
+        <button id="tg-p1" onclick="TG.preset(1)">Shelters &amp; water (other headers)</button>
+        <button id="tg-p2" onclick="TG.preset(2)">Quoted / messy CSV</button>
+        <label class="tg-row" style="margin-left:auto">Backup power <input id="tg-bud" type="range" min="1" max="30" value="8" oninput="TG.setBudget(this.value)"> <b id="tg-budv">8 kW</b></label>
+      </div>
+      <textarea id="tg-csv" spellcheck="false" oninput="TG.input()"></textarea>
+      <div class="note">Paste any CSV. Columns are matched by meaning (id, name, type, criticality, kW, patients/beds, status, depends_on, timestamp).</div>
+    </div>
+    <div class="tg-kpis" id="tg-kpis"></div>
+    <div class="tg-card"><h2>1 · Trust review: valid-looking records that smell wrong</h2>
+      <div class="scroll"><table id="tg-trust"></table></div>
+      <div class="note" style="margin-top:6px">Pick Keep / Fix / Drop per record; the plan recomputes instantly. “If wrong” shows what flipping that call would cost or gain.</div></div>
+    <div class="tg-two">
+      <div class="tg-card"><h2>2 · Restoration plan (dependency-aware)</h2><div class="scroll"><table id="tg-plan"></table></div></div>
+      <div class="tg-card"><h2>3 · Hard rejects (format failures)</h2><div class="scroll"><table id="tg-hard"></table></div>
+        <h2 style="margin-top:14px">Why a naive plan fails</h2><div id="tg-naive" class="note"></div></div>
+    </div>
+  </main>
+
+  <footer class="text-xs text-[var(--muted-foreground)] text-center py-2 flex items-center justify-center gap-2">
+    <span>BlackoutShield + AutoShield Prototype</span>
+    <span>&bull;</span>
+    <span>Standalone Zero-Dependency Web Console</span>
+  </footer>
+
+  <!-- ======================================================== -->
+  <!-- JAVASCRIPT ENGINE                                        -->
+  <!-- ======================================================== -->
+  <script>
+    let ccFailed = new Set(), ccChain = [], ccTimer = null;
+    function toggleTheme(){const r=document.documentElement;r.dataset.theme=r.dataset.theme==='light'?'dark':'light';}
+    const esc = t => String(t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+    function ccRefresh(){
+      if(!blackoutState) return;
+      const acc = blackoutState.accepted;
+      ccFailed = new Set([...ccFailed].filter(id => acc.some(a => a.service_id === id)));
+      const budgetEl = document.getElementById('cc-budget');
+      if (budgetEl) budgetEl.innerText = currentPowerBudget;
+      ccSweep(acc); ccFailUI(acc); ccBuildChain().then(()=>ccVerify(false,true)); ccSitrep();
+    }
+
+    function ccSweep(acc){
+      const pts=[]; for(let b=1;b<=20;b++){const r=runSimulation(acc,b);pts.push({b,n:r.summary.restored_count,kw:r.summary.power_used_kw});}
+      const total=acc.length, W=560,H=170,L=30,B=24;
+      const x=b=>L+(b-1)*(W-L-10)/19, y=n=>H-B-(total?n/total:0)*(H-B-12);
+      const line=pts.map((p,i)=>(i?'L':'M')+x(p.b)+','+y(p.n)).join(' ');
+      const cur=pts[currentPowerBudget-1] || pts[0];
+      const full=pts.find(p=>p.n===total);
+      const crit5=acc.filter(a=>a.criticality===5);
+      const c5=pts.find(p=>{const r=runSimulation(acc,p.b);return crit5.every(c=>r.recoveryList.find(x=>x.service_id===c.service_id).recovery_result==='RESTORED');});
+      const sweepEl = document.getElementById('cc-sweep');
+      if (sweepEl) {
+        sweepEl.innerHTML=`<svg viewBox="0 0 ${W} ${H}" class="w-full min-w-[420px]">
+          ${[0,.5,1].map(f=>`<line x1="${L}" x2="${W-10}" y1="${y(total*f)}" y2="${y(total*f)}" stroke="var(--border)" stroke-dasharray="3 3"/><text x="2" y="${y(total*f)+3}" font-size="10" fill="var(--muted-foreground)">${Math.round(total*f)}</text>`).join('')}
+          <path d="${line}" fill="none" stroke="#f59e0b" stroke-width="2.5"/>
+          ${pts.map(p=>`<circle cx="${x(p.b)}" cy="${y(p.n)}" r="${p.b===currentPowerBudget?5:2.5}" fill="${p.b===currentPowerBudget?'#10b981':'#f59e0b'}" style="cursor:pointer" onclick="setBudget(${p.b});document.getElementById('budget-slider').value=${p.b}"><title>${p.b} kW → ${p.n}/${total} restored</title></circle>`).join('')}
+          ${pts.filter(p=>p.b%2===0).map(p=>`<text x="${x(p.b)}" y="${H-8}" font-size="10" text-anchor="middle" fill="var(--muted-foreground)">${p.b}</text>`).join('')}
+          <text x="${W-10}" y="${H-8}" font-size="10" text-anchor="end" fill="var(--muted-foreground)">kW</text></svg>`;
+      }
+      const minBadgeEl = document.getElementById('cc-min-badge');
+      if (minBadgeEl) minBadgeEl.innerText = full ? `Full restore ≥ ${full.b} kW` : 'Full restore not reachable';
+      const jumps=pts.filter((p,i)=>i&&p.n>pts[i-1].n).map(p=>`${p.b} kW (+${p.n-pts[p.b-2].n})`);
+      const insightsEl = document.getElementById('cc-insights');
+      if (insightsEl) {
+        insightsEl.innerHTML=[
+          c5?`• All criticality-5 services are restored from <b class="text-[var(--foreground)]">${c5.b} kW</b>.`:'• Criticality-5 services cannot all be restored within 20 kW.',
+          `• Click any point to jump the budget. Current: <b class="text-[var(--foreground)]">${cur.n}/${total}</b> restored at ${currentPowerBudget} kW.`,
+          jumps.length?`• Biggest steps up: ${jumps.join(', ')}.`:''].filter(Boolean).join('<br>');
+      }
+    }
+
+    function ccFailUI(acc){
+      const failListEl = document.getElementById('cc-fail-list');
+      if (failListEl) {
+        failListEl.innerHTML=acc.map(a=>`<button onclick="ccToggleFail('${a.service_id}')" class="text-xs font-mono px-2 py-1 rounded-lg border ${ccFailed.has(a.service_id)?'bg-rose-500/15 border-rose-500/50 text-rose-500 line-through':'bg-[var(--background)] border-[var(--border)]'}">${esc(a.service_id)}</button>`).join('');
+      }
+      const live=acc.filter(a=>!ccFailed.has(a.service_id));
+      const r=runSimulation(live,currentPowerBudget), base=blackoutState.summary.restored_count;
+      const lost=blackoutState.recoveryList.filter(b=>b.recovery_result==='RESTORED'&&!r.recoveryList.some(x=>x.service_id===b.service_id&&x.recovery_result==='RESTORED')&&!ccFailed.has(b.service_id));
+      const failResEl = document.getElementById('cc-fail-result');
+      if (failResEl) {
+        failResEl.innerHTML=ccFailed.size===0?'<span class="text-[var(--muted-foreground)]">Click a service ID to fail it.</span>':
+          `<div>Restored: <b>${r.summary.restored_count}</b> (baseline ${base}, <span class="${r.summary.restored_count<base?'text-rose-500':'text-emerald-500'}">${r.summary.restored_count-base>=0?'+':''}${r.summary.restored_count-base}</span>)</div>
+           <div>Power used: ${r.summary.power_used_kw} kW · reserve ${r.summary.remaining_kw} kW</div>
+           <div class="text-rose-500">${lost.length?'Cascade losses: '+lost.map(l=>esc(l.service_id)).join(', '):'No additional cascade losses.'}</div>
+           <button onclick="ccFailed.clear();ccFailUI(blackoutState.accepted)" class="mt-1 text-xs underline text-[var(--muted-foreground)]">Clear all</button>`;
+      }
+    }
+    function ccToggleFail(id){ccFailed.has(id)?ccFailed.delete(id):ccFailed.add(id);ccFailUI(blackoutState.accepted);}
+
+    function ccReplay(){
+      clearInterval(ccTimer); if(!blackoutState) return;
+      const tl=blackoutState.timeline, log=document.getElementById('cc-rp-log'), bar=document.getElementById('cc-rp-bar'), bud=currentPowerBudget;
+      if (!log || !bar) return;
+      log.innerHTML=''; bar.style.width='0%'; let i=0;
+      if(!tl.length){log.innerHTML='<span class="text-rose-500">Nothing can be restored at this budget.</span>';return;}
+      ccTimer=setInterval(()=>{
+        if(i>=tl.length){clearInterval(ccTimer);log.insertAdjacentHTML('beforeend',`<span class="text-emerald-500 font-bold">✓ Replay complete: ${tl.length} services restored.</span>`);return;}
+        const t=tl[i++]; bar.style.width=(t.running_used/bud*100)+'%';
+        log.insertAdjacentHTML('beforeend',`<div class="flex justify-between border border-[var(--border)] rounded-lg px-2 py-1 bg-[var(--background)]"><span><b>Step ${t.step}</b> ⚡ ${esc(t.id)} <span class="text-[var(--muted-foreground)]">(crit ${t.crit})</span></span><span class="font-mono text-amber-500">+${t.power} kW → ${t.running_used.toFixed(1)}/${bud}</span></div>`);
+      },700);
+    }
+
+    async function sha256(t){
+      try{const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');}
+      catch(e){let h=2166136261;for(const c of t){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return ('00000000'+(h>>>0).toString(16)).repeat(8);}
+    }
+    async function ccBuildChain(){
+      let prev='0'.repeat(64); ccChain=[];
+      for(const a of blackoutState.audit){const entry={action:a.action,details:a.details,prev};const hash=await sha256(prev+'|'+a.action+'|'+a.details);ccChain.push({...entry,hash});prev=hash;}
+    }
+    async function ccVerify(tamper,silent){
+      const el=document.getElementById('cc-chain-status'); if(!ccChain.length || !el) return;
+      const copy=ccChain.map(c=>({...c})); if(tamper&&copy.length>1) copy[1].details+=' (edited)';
+      let prev='0'.repeat(64), bad=-1;
+      for(let i=0;i<copy.length;i++){const h=await sha256(prev+'|'+copy[i].action+'|'+copy[i].details); if(h!==copy[i].hash&&bad<0) bad=i; prev=copy[i].hash;}
+      const chainEl = document.getElementById('cc-chain');
+      if (chainEl) {
+        chainEl.innerHTML=copy.map((c,i)=>`<div class="px-2 py-1 rounded border ${bad>=0&&i>=bad?'border-rose-500/50 text-rose-500':'border-[var(--border)]'}">#${i} ${esc(c.action)} · ${c.hash.slice(0,16)}…</div>`).join('');
+      }
+      el.className='text-xs font-bold '+(bad<0?'text-emerald-500':'text-rose-500');
+      el.innerText=bad<0?`✓ Chain intact (${copy.length} entries, head ${copy[copy.length-1].hash.slice(0,12)})`:`✗ TAMPER DETECTED at entry #${bad}; entries #${bad}–#${copy.length-1} fail verification`;
+      if(!silent) showToast(bad<0?'Ledger verified':'Tamper detected',bad<0);
+    }
+
+    function ccSitrepText(){
+      if (!blackoutState) return "";
+      const b=blackoutState, sm=b.summary, head=ccChain.length?ccChain[ccChain.length-1].hash.slice(0,16):'n/a';
+      const rs=b.recoveryList.filter(r=>r.recovery_result==='RESTORED'), un=b.recoveryList.filter(r=>r.recovery_result!=='RESTORED');
+      const fileLabel = document.getElementById('bs-file-label') ? document.getElementById('bs-file-label').innerText : 'sample_services.csv';
+      return `# BlackoutShield SITREP
+Generated: ${new Date().toISOString()}
+Dataset: ${fileLabel}
+
+## Data trust
+- Ingested ${b.rawRows.length} rows · accepted ${b.accepted.length} · quarantined ${b.quarantine.length}
+- Ledger head (SHA-256): ${head}
+
+## Recovery at ${sm.backup_budget_kw} kW
+- Restored ${sm.restored_count}/${sm.total_count} · used ${sm.power_used_kw} kW · reserve ${sm.remaining_kw} kW
+${rs.map((r,i)=>`  ${i+1}. ${r.service_id} (${r.service_name}, crit ${r.criticality}, ${r.power_kw} kW)`).join('\n')||'  none'}
+
+## Not restored
+${un.map(r=>`- ${r.service_id}: ${r.recovery_result}`).join('\n')||'- none'}
+
+## Quarantined records
+${b.quarantine.map(q=>`- Row ${q.raw_idx} ${q.service_id||'UNKNOWN'}: ${q.quarantine_reason}`).join('\n')||'- none'}
+`;}
+    function ccSitrep(){const el=document.getElementById('cc-sitrep'); if(el) el.innerText=ccSitrepText();}
+    function ccCopySitrep(){navigator.clipboard.writeText(ccSitrepText()).then(()=>showToast('SITREP copied'),()=>showToast('Copy blocked by browser',false));}
+    function ccDownloadSitrep(){triggerDownload(ccSitrepText(),'sitrep.md','text/markdown');}
+
+    function showToast(message, isSuccess = true) {
+      const toast = document.getElementById('toast-notify');
+      const icon = document.getElementById('toast-icon');
+      const text = document.getElementById('toast-text');
+      if (!toast) return;
+      icon.innerText = isSuccess ? '✓' : '⚠️';
+      text.innerText = message;
+      toast.className = isSuccess
+        ? "fixed top-5 right-5 z-50 transform transition-all duration-300 translate-y-0 opacity-100 bg-[var(--card)] border border-emerald-500/50 text-[var(--foreground)] px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-2.5 text-xs"
+        : "fixed top-5 right-5 z-50 transform transition-all duration-300 translate-y-0 opacity-100 bg-[var(--card)] border border-rose-500/50 text-[var(--foreground)] px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-2.5 text-xs";
+      setTimeout(() => {
+        toast.className = "fixed top-5 right-5 z-50 transform transition-all duration-300 translate-y-[-100px] opacity-0 pointer-events-none bg-[var(--card)] border border-emerald-500/50 text-[var(--foreground)] px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-2.5 text-xs";
+      }, 3000);
+    }
+
+    const DEFAULT_SERVICES_CSV = `service_id,service_name,facility_type,criticality,power_kw,patients,status,depends_on,timestamp
+PWR,Backup Power Controller,POWER,5,1,,ONLINE,,2026-10-30 09:00:00
+PUMP1,North Pumping Station,WATER,5,2,,ONLINE,PWR,2026-10-30 09:01:00
+PUMP2,East Pumping Station,WATER,5,2,,ONLINE,PWR,2026-10-30 09:02:00
+HOSP1,City General Hospital,HOSPITAL,5,3,320,ONLINE,PWR;PUMP1,2026-10-30 09:03:00
+HOSP2,St Mary Hospital,HOSPITAL,5,3,0,ONLINE,PWR;PUMP1,2026-10-30 09:04:00
+HOSP3,Riverside Hospital,HOSPITAL,3,5,140,ONLINE,PWR;PUMP2,2026-10-30 09:05:00
+HOSP1B,City General Hosp.,HOSPITAL,5,3,320,ONLINE,PWR;PUMP1,2026-10-30 09:06:00
+TELCO,Telecom Exchange,TELECOM,4,2,,ONLINE,PWR,2026-10-30 09:07:00
+TRAFFIC,Traffic Signal Hub,TRAFFIC,3,2,,ONLINE,PWR,2026-10-30 09:08:00
+CAMERA,Security Camera,SECURITY,high,1,,ONLINE,PWR,not-a-date`;
+    let reviewDecisions = {};
+    const TYPE_PROFILE = { HOSPITAL:{crit:5,pw:[2,6]}, WATER:{crit:5,pw:[1,5]}, POWER:{crit:5,pw:[1,3]}, TELECOM:{crit:4,pw:[1,4]}, TRAFFIC:{crit:3,pw:[1,3]} };
+    const inferType = r => { const t=(r.facility_type||'').toUpperCase(); if(TYPE_PROFILE[t]) return t; const n=(r.service_name||'').toLowerCase();
+      return /hosp|clinic/.test(n)?'HOSPITAL':/pump|water/.test(n)?'WATER':/traffic|signal/.test(n)?'TRAFFIC':/telecom|exchange/.test(n)?'TELECOM':/power/.test(n)?'POWER':t; };
+    const nameTokens = n => new Set((n||'').toLowerCase().replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(Boolean).map(t=>t.slice(0,4)));
+    const jaccard = (a,b) => { const i=[...a].filter(x=>b.has(x)).length; return i/(a.size+b.size-i||1); };
+
+    let activeBlackoutCSV = DEFAULT_SERVICES_CSV;
+    let currentPowerBudget = 8;
+    let blackoutState = null;
+
+    function parseCSV(text) {
+      if (!text || typeof text !== 'string') return [];
+      const lines = text.trim().split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+      if (lines.length === 0) return [];
+      const headers = lines[0].split(',').map(h => h.trim());
+      const rows = [];
+      for (let i = 1; i < lines.length; i++) {
+        const parts = lines[i].split(',').map(p => p.trim());
+        const row = {};
+        headers.forEach((h, idx) => {
+          row[h] = parts[idx] !== undefined ? parts[idx] : "";
+        });
+        rows.push(row);
+      }
+      return rows;
+    }
+
+    function validateBlackoutData(rawRows, decisions = reviewDecisions) {
+      const audit = [];
+      const quarantineIndices = new Set();
+      const reasons = {};
+
+      function reject(idx, reason) {
+        quarantineIndices.add(idx);
+        if (!reasons[idx]) reasons[idx] = [];
+        reasons[idx].push(reason);
+      }
+
+      const rows = rawRows.map(r => ({ ...r }));
+
+      rows.forEach((row, idx) => {
+        ['service_id', 'service_name', 'status', 'depends_on', 'timestamp'].forEach(col => {
+          if (row[col]) {
+            const trimmed = row[col].trim();
+            if (trimmed !== row[col]) {
+              audit.push({ action: 'TRIM_WHITESPACE', details: `${col}: trimmed whitespace` });
+              row[col] = trimmed;
+            }
+          }
+        });
+        row.service_id = (row.service_id || '').toUpperCase();
+        row.status = (row.status || '').toUpperCase();
+        row.depends_on = (row.depends_on || '').toUpperCase().replace(/[;|]/g, ',').replace(/\s+/g,'');
+
+        if (!row.service_id) reject(idx, "Missing service_id");
+        if (!row.service_name) reject(idx, "Missing service_name");
+
+        const crit = Number(row.criticality);
+        if (isNaN(crit) || !Number.isInteger(crit)) {
+          reject(idx, "Criticality must be an integer from 1 to 5 (found non-integer)");
+        } else if (crit < 1 || crit > 5) {
+          reject(idx, "Criticality must be from 1 to 5");
+        }
+
+        const pwr = Number(row.power_kw);
+        if (isNaN(pwr) || pwr <= 0) {
+          reject(idx, "power_kw must be a positive number");
+        }
+
+        if (row.status !== "ONLINE" && row.status !== "OFFLINE") {
+          reject(idx, "Status must be ONLINE or OFFLINE");
+        }
+
+        if (isNaN(Date.parse(row.timestamp))) {
+          reject(idx, "Invalid or unparseable timestamp");
+        }
+      });
+
+      // ---------- PLAUSIBLE-BUT-WRONG LAYER ----------
+      const review = [], alias = {};
+      const hospPat = rows.filter((r,i) => !quarantineIndices.has(i) && inferType(r)==='HOSPITAL' && Number(r.patients) > 0).map(r => Number(r.patients)).sort((a,b)=>a-b);
+      const medianPat = hospPat.length ? hospPat[Math.floor(hospPat.length/2)] : 1;
+      const flag = (idx, code, msg, options, def) => {
+        const d = decisions[idx] || def; review.push({ idx, line: idx+2, id: rows[idx].service_id, name: rows[idx].service_name, code, msg, options, decision: d });
+        audit.push({ action: 'PLAUSIBILITY_FLAG', details: `Row ${idx+2} ${rows[idx].service_id}: ${code} -> ${d}` }); return d;
+      };
+      rows.forEach((row, idx) => {
+        if (quarantineIndices.has(idx)) return;
+        const type = inferType(row), prof = TYPE_PROFILE[type], crit = Number(row.criticality), pw = Number(row.power_kw);
+        row.facility_type = type;
+        if (type === 'HOSPITAL' && row.patients !== undefined && row.patients !== '' && Number(row.patients) === 0) {
+          const d = flag(idx, 'ZERO_PATIENTS', 'Hospital reports 0 patients. Format is valid but implausible; wrongly dropping a full hospital is far costlier than powering an empty one.', ['fix','asis','drop'], 'fix');
+          if (d === 'fix') { row.patients = String(medianPat); row.assumed = true; } else if (d === 'drop') reject(idx, 'Excluded by operator: 0-patient hospital');
+        }
+        if (prof && crit !== prof.crit) {
+          const swapOK = Number.isInteger(pw) && pw === prof.crit && crit >= prof.pw[0] && crit <= prof.pw[1];
+          if (swapOK) {
+            const d = flag(idx, 'SWAPPED_COLUMNS', `${type} should be criticality ${prof.crit}; criticality and power_kw look swapped (${crit} / ${pw} kW -> ${pw} / ${crit} kW).`, ['fix','asis','drop'], 'fix');
+            if (d === 'fix') { row.criticality = String(pw); row.power_kw = String(crit); row.repaired = true; } else if (d === 'drop') reject(idx, 'Excluded by operator: swapped-column suspect');
+          } else {
+            const d = flag(idx, 'PROFILE_MISMATCH', `${type} normally has criticality ${prof.crit}; reported ${crit}.`, ['asis','drop'], 'asis');
+            if (d === 'drop') reject(idx, 'Excluded by operator: profile mismatch');
+          }
+        }
+      });
+      rows.forEach((row, idx) => {
+        if (quarantineIndices.has(idx)) return;
+        for (let j = 0; j < idx; j++) {
+          const o = rows[j];
+          if (quarantineIndices.has(j) || alias[o.service_id] || o.service_id === row.service_id) continue;
+          if (inferType(o) === inferType(row) && Number(o.power_kw) === Number(row.power_kw) && jaccard(nameTokens(o.service_name), nameTokens(row.service_name)) >= 0.75) {
+            const d = flag(idx, 'POSSIBLE_DUPLICATE', `Looks like the same facility as ${o.service_id} listed under a different ID. Merging avoids double-counting power; keep separate if it is a real twin site.`, ['drop','asis'], 'drop');
+            if (d === 'drop') { alias[row.service_id] = o.service_id; reject(idx, `Merged as probable duplicate of ${o.service_id} (reversible)`); }
+            break;
+          }
+        }
+      });
+      rows.forEach(r => { r.depends_on = r.depends_on.split(',').filter(Boolean).map(d => alias[d] || d).filter((d,i,a)=>a.indexOf(d)===i).join(','); });
+      const seen = new Set();
+      rows.forEach((row, idx) => {
+        const sid = row.service_id;
+        if (sid) {
+          if (seen.has(sid)) {
+            reject(idx, `Duplicate service_id: ${sid}`);
+          } else {
+            seen.add(sid);
+          }
+        }
+      });
+
+      const allIds = new Set(rows.map(r => r.service_id).filter(Boolean));
+      rows.forEach((row, idx) => {
+        const deps = (row.depends_on || '').split(',').map(d => d.trim()).filter(Boolean);
+        const unknown = deps.filter(d => !allIds.has(d));
+        if (unknown.length > 0) {
+          reject(idx, "Unknown dependency ID(s): " + unknown.join(', '));
+        }
+        if (row.service_id && deps.includes(row.service_id)) {
+          reject(idx, "A service cannot depend on itself");
+        }
+      });
+
+      let accepted = [];
+      let quarantine = [];
+
+      rows.forEach((row, idx) => {
+        if (quarantineIndices.has(idx)) {
+          const reasonStr = (reasons[idx] || ["Unknown validation issue"]).join('; ');
+          quarantine.push({ ...row, quarantine_reason: reasonStr, raw_idx: idx + 2 });
+          audit.push({ action: 'QUARANTINE_ROW', details: `Row ${idx + 2}: ${reasonStr}` });
+        } else {
+          accepted.push({
+            service_id: row.service_id,
+            service_name: row.service_name,
+            criticality: parseInt(row.criticality),
+            power_kw: parseFloat(row.power_kw),
+            status: row.status,
+            depends_on: row.depends_on,
+            timestamp: row.timestamp,
+            facility_type: row.facility_type || '',
+            patients: row.patients === undefined || row.patients === '' ? '' : Number(row.patients),
+            note: row.assumed ? 'patients assumed (0 reported)' : row.repaired ? 'columns un-swapped' : ''
+          });
+        }
+      });
+
+      let acceptedIds = new Set(accepted.map(r => r.service_id));
+      let unsafeIndices = [];
+      accepted.forEach((row, idx) => {
+        const deps = (row.depends_on || '').split(',').map(d => d.trim()).filter(Boolean);
+        const missing = deps.filter(d => !acceptedIds.has(d));
+        if (missing.length > 0) {
+          unsafeIndices.push(idx);
+          audit.push({
+            action: 'QUARANTINE_DEPENDENT_SERVICE',
+            details: `${row.service_id} depends on quarantined/missing service(s): ${missing.join(', ')}`
+          });
+        }
+      });
+
+      if (unsafeIndices.length > 0) {
+        const toMove = accepted.filter((_, idx) => unsafeIndices.includes(idx));
+        toMove.forEach(m => {
+          quarantine.push({ ...m, quarantine_reason: "Depends on a missing or quarantined service", raw_idx: "Cascade" });
+        });
+        accepted = accepted.filter((_, idx) => !unsafeIndices.includes(idx));
+      }
+
+      audit.unshift({ action: 'VALIDATION_SUMMARY', details: `Accepted ${accepted.length} row(s); quarantined ${quarantine.length} row(s)` });
+
+      return { accepted, quarantine, audit, review };
+    }
+
+    function runSimulation(cleanServices, budget) {
+      if (cleanServices.length === 0) {
+        return {
+          recoveryList: [],
+          timeline: [],
+          summary: { restored_count: 0, total_count: 0, power_used_kw: 0, backup_budget_kw: budget, remaining_kw: budget }
+        };
+      }
+
+      const dependencyMap = {};
+      cleanServices.forEach(s => {
+        const deps = (s.depends_on || '').split(',').map(d => d.trim()).filter(Boolean);
+        dependencyMap[s.service_id] = deps;
+      });
+
+      let remainingIds = new Set(cleanServices.map(s => s.service_id));
+      const restored = new Set();
+      const results = {};
+      const timeline = [];
+      let used = 0.0;
+      let stepNum = 1;
+
+      const byId = {}; cleanServices.forEach(x => byId[x.service_id] = x);
+      const hasDependents = new Set(); cleanServices.forEach(x => (dependencyMap[x.service_id]||[]).forEach(d => hasDependents.add(d)));
+      const closure = (id, path) => {
+        if (restored.has(id)) return [];
+        if (path.includes(id) || !byId[id]) return null;
+        const out = [];
+        for (const d of dependencyMap[id] || []) { const c = closure(d, [...path, id]); if (c === null) return null; c.forEach(x => { if (!out.includes(x)) out.push(x); }); }
+        out.push(id); return out;
+      };
+      while (remainingIds.size > 0) {
+        // A service is only worth powering as a whole bundle (itself + every dark dependency).
+        // Leaf services (hospitals etc.) are chosen first so pumps are never powered for nothing.
+        const pick = leafOnly => {
+          let best = null;
+          remainingIds.forEach(id => {
+            if (leafOnly && hasDependents.has(id)) return;
+            const c = closure(id, []); if (!c || !c.length) return;
+            const cost = c.reduce((t, x) => t + byId[x].power_kw, 0);
+            if (cost > budget - used + 1e-9) return;
+            const t = byId[id], pat = Number(t.patients) || 0;
+            const better = !best || t.criticality > best.t.criticality || (t.criticality === best.t.criticality && (pat > best.pat || (pat === best.pat && (cost < best.cost || (cost === best.cost && id < best.id)))));
+            if (better) best = { id, c, cost, t, pat };
+          });
+          return best;
+        };
+        const best = pick(true) || pick(false);
+        if (!best) break;
+        best.c.forEach(x => {
+          const sv = byId[x]; restored.add(x); remainingIds.delete(x); used += sv.power_kw; results[x] = "RESTORED";
+          timeline.push({ step: stepNum++, id: x, name: sv.service_name, power: sv.power_kw, running_used: used, crit: sv.criticality });
+        });
+      }
+
+      remainingIds.forEach(sid => {
+        const allDepsRestored = (dependencyMap[sid] || []).every(dep => restored.has(dep));
+        if (!allDepsRestored) {
+          results[sid] = "WAITING_FOR_DEPENDENCY";
+        } else {
+          results[sid] = "INSUFFICIENT_BACKUP_POWER";
+        }
+      });
+
+      const recoveryList = cleanServices.map(s => {
+        const res = results[s.service_id];
+        const score = (s.criticality / s.power_kw).toFixed(2);
+        return {
+          ...s,
+          recovery_result: res,
+          priority_score: parseFloat(score)
+        };
+      });
+
+      recoveryList.sort((a, b) => {
+        if (a.recovery_result !== b.recovery_result) {
+          const order = { "RESTORED": 1, "INSUFFICIENT_BACKUP_POWER": 2, "WAITING_FOR_DEPENDENCY": 3 };
+          return (order[a.recovery_result] || 4) - (order[b.recovery_result] || 4);
+        }
+        if (b.criticality !== a.criticality) return b.criticality - a.criticality;
+        return a.power_kw - b.power_kw;
+      });
+
+      const summary = {
+        restored_count: restored.size,
+        total_count: cleanServices.length,
+        power_used_kw: parseFloat(used.toFixed(2)),
+        backup_budget_kw: parseFloat(budget.toFixed(2)),
+        remaining_kw: parseFloat(Math.max(0, budget - used).toFixed(2))
+      };
+
+      return { recoveryList, timeline, summary };
+    }
+
+    // ========================================================
+    // HIGH-DEFINITION ELECTRICAL BUS TOPOLOGY ENGINE
+    // ========================================================
+    function renderTopologySVG(cleanServices, recoveryResults, quarantineRecords) {
+      const container = document.getElementById('topology-canvas-wrap');
+      if (!container) return;
+
+      const statusMap = {};
+      recoveryResults.forEach(r => { statusMap[r.service_id] = r.recovery_result; });
+
+      const cleanIdSet = new Set(cleanServices.map(c => c.service_id));
+      quarantineRecords.forEach(q => {
+        if (q.service_id && !cleanIdSet.has(q.service_id)) {
+          statusMap[q.service_id] = "QUARANTINED";
+        }
+      });
+
+      // Facility Icons dictionary
+      const iconMap = {
+        PWR: "⚡",
+        CLINIC: "🏥",
+        COLD: "❄️",
+        ACCESS: "🔒",
+        LIGHTS: "💡",
+        WIFI: "📶",
+        CAMERA: "📹",
+        ICU: "🩺",
+        DEFAULT: "🏢"
+      };
+
+      // Gather distinct branch facilities
+      const rootService = recoveryResults.find(s => s.service_id === 'PWR') || recoveryResults[0] || { service_id: 'PWR', service_name: 'Backup Generator', power_kw: 1, criticality: 5 };
+      const branches = recoveryResults.filter(s => s.service_id !== rootService.service_id);
+
+      // Append real quarantined services (unique)
+      quarantineRecords.forEach(q => {
+        if (q.service_id && !cleanIdSet.has(q.service_id) && !branches.some(b => b.service_id === q.service_id)) {
+          branches.push({
+            service_id: q.service_id,
+            service_name: q.service_name || 'Quarantined Service',
+            power_kw: q.power_kw || '1',
+            criticality: q.criticality || '1',
+            recovery_result: 'QUARANTINED',
+            is_quarantined_record: true
+          });
+        }
+      });
+
+      const totalBranches = Math.max(1, branches.length);
+      const rowHeight = 56;
+      const svgHeight = Math.max(380, totalBranches * rowHeight + 40);
+      const svgWidth = 740;
+
+      // Coordinates
+      const genX = 85;
+      const genY = svgHeight / 2;
+      const busX = 220; // Vertical trunk distribution bus
+      const branchStartX = busX;
+      const branchEndX = 540;
+
+      const pwrLive = statusMap[rootService.service_id] === 'RESTORED';
+      const rootColor = pwrLive ? '#10b981' : '#f59e0b';
+
+      let svg = `<svg viewBox="0 0 ${svgWidth} ${svgHeight}" class="w-full h-full select-none">`;
+
+      // 1. Grid Background Substation Pattern
+      svg += `
+        <defs>
+          <pattern id="grid-dots" width="20" height="20" patternUnits="userSpaceOnUse">
+            <circle cx="2" cy="2" r="1" fill="rgba(255,255,255,0.04)" />
+          </pattern>
+          <linearGradient id="pwr-grad-live" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#10b981" stop-opacity="0.3"/>
+            <stop offset="100%" stop-color="#047857" stop-opacity="0.1"/>
+          </linearGradient>
+          <linearGradient id="pwr-grad-idle" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.25"/>
+            <stop offset="100%" stop-color="#b45309" stop-opacity="0.08"/>
+          </linearGradient>
+        </defs>
+        <rect width="${svgWidth}" height="${svgHeight}" fill="url(#grid-dots)" />
+      `;
+
+      // Calculate branch Y coordinates evenly
+      const branchYMap = {};
+      branches.forEach((b, i) => {
+        const y = 38 + i * ((svgHeight - 76) / Math.max(1, totalBranches - 1));
+        branchYMap[b.service_id] = y;
+      });
+
+      // 2. Main Transmission Conduit from Generator to Vertical Bus
+      svg += `
+        <!-- Main feeder conduit -->
+        <line x1="${genX + 50}" y1="${genY}" x2="${busX}" y2="${genY}" stroke="${pwrLive ? '#10b981' : '#f59e0b'}" stroke-width="${pwrLive ? '4' : '2.5'}" opacity="${pwrLive ? '0.4' : '0.25'}" />
+      `;
+      if (pwrLive) {
+        svg += `
+          <line x1="${genX + 50}" y1="${genY}" x2="${busX}" y2="${genY}" stroke="#10b981" stroke-width="3" stroke-dasharray="10 8" class="electric-flow-active" opacity="0.95" />
+          <circle r="4" fill="#10b981">
+            <animate attributeName="cx" from="${genX + 50}" to="${busX}" dur="0.9s" repeatCount="indefinite" />
+            <animate attributeName="cy" from="${genY}" to="${genY}" dur="0.9s" repeatCount="indefinite" />
+          </circle>
+        `;
+      }
+
+      // Vertical Distribution Bus Trunk
+      const minY = Math.min(...Object.values(branchYMap));
+      const maxY = Math.max(...Object.values(branchYMap));
+      svg += `
+        <line x1="${busX}" y1="${minY}" x2="${busX}" y2="${maxY}" stroke="${pwrLive ? '#10b981' : '#f59e0b'}" stroke-width="${pwrLive ? '4' : '2.5'}" opacity="${pwrLive ? '0.45' : '0.25'}" />
+        <circle cx="${busX}" cy="${genY}" r="6" fill="${pwrLive ? '#10b981' : '#f59e0b'}" />
+        <text x="${busX - 8}" y="${minY - 10}" font-size="10" font-family="monospace" font-weight="bold" fill="var(--muted-foreground)" text-anchor="end">480V FEEDER BUS</text>
+      `;
+
+      // 3. Render Each Branch Line & Circuit Breaker Switch
+      branches.forEach(b => {
+        const y = branchYMap[b.service_id];
+        const status = statusMap[b.service_id] || b.recovery_result;
+        const isRestored = (status === 'RESTORED');
+        const isQuarantined = (status === 'QUARANTINED');
+        const isWaiting = (status === 'WAITING_FOR_DEPENDENCY');
+
+        // Color & badge scheme
+        let color = '#f59e0b';
+        let statusBadge = 'NO POWER';
+        let badgeBg = 'rgba(245, 158, 11, 0.15)';
+        if (isRestored) {
+          color = '#10b981';
+          statusBadge = 'RESTORED';
+          badgeBg = 'rgba(16, 185, 129, 0.15)';
+        } else if (isQuarantined) {
+          color = '#ef4444';
+          statusBadge = 'QUARANTINED';
+          badgeBg = 'rgba(239, 68, 68, 0.15)';
+        } else if (isWaiting) {
+          color = '#3b82f6';
+          statusBadge = 'WAITING DEP';
+          badgeBg = 'rgba(59, 130, 246, 0.15)';
+        }
+
+        const breakerX = busX + 60; // Position of breaker switch
+
+        // Bus Tap Joint
+        svg += `<circle cx="${busX}" cy="${y}" r="3.5" fill="${isRestored ? '#10b981' : 'var(--border)'}" />`;
+
+        // Wire from Bus to Breaker
+        svg += `
+          <line x1="${busX}" y1="${y}" x2="${breakerX - 16}" y2="${y}" stroke="${pwrLive ? '#10b981' : 'var(--border)'}" stroke-width="2.5" opacity="${pwrLive ? '0.5' : '0.25'}" />
+        `;
+
+        if (isRestored) {
+          // ================= RESTORED: CLOSED CIRCUIT BREAKER & ACTIVE GLOWING ELECTRIC FLOW =================
+          svg += `
+            <!-- Closed Circuit Breaker Contact -->
+            <g transform="translate(${breakerX}, ${y})">
+              <rect x="-16" y="-8" width="32" height="16" rx="4" fill="var(--card)" stroke="#10b981" stroke-width="1.5" />
+              <!-- Closed contact line -->
+              <line x1="-10" y1="0" x2="10" y2="0" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" />
+              <circle cx="-10" cy="0" r="2" fill="#10b981" />
+              <circle cx="10" cy="0" r="2" fill="#10b981" />
+            </g>
+
+            <!-- Live Flowing Current from Breaker to Facility -->
+            <line x1="${breakerX + 16}" y1="${y}" x2="${branchEndX - 44}" y2="${y}" stroke="#10b981" stroke-width="3" opacity="0.35" />
+            <line x1="${breakerX + 16}" y1="${y}" x2="${branchEndX - 44}" y2="${y}" stroke="#10b981" stroke-width="3.5" stroke-dasharray="10 7" class="electric-flow-active" opacity="0.95" />
+
+            <!-- Moving High-Speed Energy Pulse -->
+            <circle r="3.5" fill="#10b981" opacity="0.95">
+              <animate attributeName="cx" from="${breakerX + 16}" to="${branchEndX - 44}" dur="1.1s" repeatCount="indefinite" />
+              <animate attributeName="cy" from="${y}" to="${y}" dur="1.1s" repeatCount="indefinite" />
+            </circle>
+            <circle r="1.8" fill="#ffffff" opacity="0.9">
+              <animate attributeName="cx" from="${breakerX + 16}" to="${branchEndX - 44}" dur="1.1s" repeatCount="indefinite" />
+              <animate attributeName="cy" from="${y}" to="${y}" dur="1.1s" repeatCount="indefinite" />
+            </circle>
+          `;
+        } else if (isQuarantined) {
+          // ================= QUARANTINED: SEVERED LOCK BARRIER =================
+          svg += `
+            <!-- Open Quarantined Safety Lock -->
+            <g transform="translate(${breakerX}, ${y})">
+              <rect x="-18" y="-10" width="36" height="20" rx="5" fill="#1e1b2e" stroke="#ef4444" stroke-width="1.8" />
+              <text x="0" y="3.5" font-size="10" text-anchor="middle" fill="#ef4444" font-weight="bold">🔒</text>
+            </g>
+
+            <!-- Severed / Cut-off wire with gap and warning X -->
+            <line x1="${breakerX + 18}" y1="${y}" x2="${branchEndX - 44}" y2="${y}" stroke="#ef4444" stroke-width="2" stroke-dasharray="4 6" opacity="0.35" />
+            <g transform="translate(${(breakerX + branchEndX) / 2}, ${y})">
+              <circle r="9" fill="#111a2e" stroke="#ef4444" stroke-width="1.8" />
+              <path d="M -3.5 -3.5 L 3.5 3.5 M 3.5 -3.5 L -3.5 3.5" stroke="#ef4444" stroke-width="2" stroke-linecap="round" />
+            </g>
+          `;
+        } else {
+          // ================= UNPOWERED / INSUFFICIENT BUDGET: OPEN CIRCUIT BREAKER =================
+          svg += `
+            <!-- Open Circuit Breaker Contact (Gap clearly showing cut-off circuit) -->
+            <g transform="translate(${breakerX}, ${y})">
+              <rect x="-16" y="-9" width="32" height="18" rx="4" fill="var(--card)" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="3 2" />
+              <!-- Open blade tilted at 35 degrees showing disconnect -->
+              <line x1="-10" y1="0" x2="-2" y2="0" stroke="#f59e0b" stroke-width="2" />
+              <line x1="-2" y1="0" x2="8" y2="-6" stroke="#f59e0b" stroke-width="2.2" stroke-linecap="round" />
+              <circle cx="-10" cy="0" r="2" fill="#f59e0b" />
+              <circle cx="10" cy="0" r="2" fill="var(--muted-foreground)" />
+            </g>
+
+            <!-- Cold Unpowered Wire (STATIC, ZERO CURRENT FLOW) -->
+            <line x1="${breakerX + 16}" y1="${y}" x2="${branchEndX - 44}" y2="${y}" stroke="#f59e0b" stroke-width="2" stroke-dasharray="5 5" opacity="0.3" />
+            <text x="${(breakerX + branchEndX) / 2}" y="${y - 4}" font-size="9" font-family="monospace" font-weight="bold" fill="#f59e0b" text-anchor="middle" opacity="0.8">OPEN / 0 kW</text>
+          `;
+        }
+
+        // Arrow marker head entering facility box
+        svg += `
+          <polygon points="${branchEndX - 44},${y} ${branchEndX - 52},${y - 4} ${branchEndX - 52},${y + 4}" fill="${color}" opacity="${isRestored ? '1' : '0.45'}" />
+        `;
+
+        // Facility Node Card
+        const icon = iconMap[b.service_id] || iconMap.DEFAULT;
+        const pulseClass = isRestored ? 'glow-green' : '';
+
+        svg += `
+          <g transform="translate(${branchEndX}, ${y})" class="${pulseClass}" style="cursor:default">
+            <!-- Facility Box -->
+            <rect x="-42" y="-21" width="180" height="42" rx="8" fill="var(--card)" stroke="${color}" stroke-width="${isRestored ? '2.5' : '1.5'}" />
+            
+            <!-- Facility Icon & ID -->
+            <text x="-32" y="4" font-size="14">${icon}</text>
+            <text x="-12" y="-5" font-size="11" font-weight="bold" fill="var(--foreground)">${esc(b.service_id)}</text>
+            <text x="-12" y="11" font-size="10" fill="var(--muted-foreground)">${esc(b.service_name.slice(0, 16))}</text>
+            
+            <!-- Power & Status Pill -->
+            <rect x="76" y="-14" width="54" height="15" rx="4" fill="${badgeBg}" />
+            <text x="103" y="-3" font-size="9" font-weight="bold" fill="${color}" text-anchor="middle">${statusBadge}</text>
+            <text x="103" y="11" font-size="9" font-family="monospace" font-weight="bold" fill="var(--foreground)" text-anchor="middle">${b.power_kw} kW &bull; R${b.criticality || '?'}</text>
+          </g>
+        `;
+      });
+
+      // 4. Render Root Generator (PWR Substation) on Left
+      const usedKw = blackoutState ? blackoutState.summary.power_used_kw : currentPowerBudget;
+      const totalBudget = currentPowerBudget;
+      const loadPct = Math.round((usedKw / totalBudget) * 100);
+
+      svg += `
+        <g transform="translate(${genX}, ${genY})" class="${pwrLive ? 'glow-green' : ''}">
+          <!-- Substation Chassis -->
+          <rect x="-65" y="-48" width="130" height="96" rx="14" fill="var(--card)" stroke="${rootColor}" stroke-width="${pwrLive ? '3' : '2'}" />
+          
+          <!-- Generator Icon & Title -->
+          <g transform="translate(0, -22)">
+            <circle cx="0" cy="0" r="14" fill="${pwrLive ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)'}" />
+            <text x="0" y="5" font-size="16" text-anchor="middle">⚡</text>
+          </g>
+          
+          <text x="0" y="6" font-size="12" font-weight="extrabold" fill="var(--foreground)" text-anchor="middle">PWR GENERATOR</text>
+          <text x="0" y="19" font-size="10" fill="${rootColor}" font-weight="bold" text-anchor="middle">${usedKw.toFixed(1)} / ${totalBudget} kW</text>
+          
+          <!-- Live Load Gauge -->
+          <rect x="-45" y="27" width="90" height="6" rx="3" fill="var(--background)" />
+          <rect x="-45" y="27" width="${Math.min(90, Math.round(90 * (usedKw / totalBudget)))}" height="6" rx="3" fill="${rootColor}" />
+          <text x="0" y="42" font-size="9" fill="var(--muted-foreground)" font-family="monospace" text-anchor="middle">${loadPct}% LOAD &bull; ONLINE</text>
+        </g>
+      `;
+
+      svg += `</svg>`;
+      container.innerHTML = svg;
+    }
+
+    function setDecision(idx, d) { reviewDecisions[idx] = d; refreshBlackoutUI(); showToast('Decision applied; plan recomputed'); }
+    function renderReviewQueue(rawRows, review) {
+      const el = document.getElementById('review-queue'); if (!el) return;
+      if (!review.length) { el.innerHTML = '<div class="text-emerald-500 text-xs">✓ No plausible-but-wrong records detected.</div>'; return; }
+      const label = { fix:'Apply fix / assume occupied', asis:'Keep as reported', drop:'Exclude / merge' };
+      const code = { ZERO_PATIENTS:'0-patient hospital', SWAPPED_COLUMNS:'Swapped columns', POSSIBLE_DUPLICATE:'Duplicate under new ID', PROFILE_MISMATCH:'Profile mismatch' };
+      const cur = runSimulation(validateBlackoutData(rawRows).accepted, currentPowerBudget).summary.restored_count;
+      el.innerHTML = review.map(r => {
+        const alts = r.options.filter(o => o !== r.decision).map(o => {
+          const sim = runSimulation(validateBlackoutData(rawRows, { ...reviewDecisions, [r.idx]: o }).accepted, currentPowerBudget).summary.restored_count;
+          return `<button onclick="setDecision(${r.idx},'${o}')" class="text-xs px-2 py-1 rounded-lg border border-[var(--border)] hover:border-amber-500 hover:text-amber-500">${label[o]} <span class="text-[var(--muted-foreground)]">(would restore ${sim} vs ${cur})</span></button>`;
+        }).join('');
+        return `<div class="p-2.5 rounded-lg bg-[var(--card)] border border-amber-500/40 flex flex-col gap-1.5">
+          <div class="font-bold">Row ${r.line}: ${esc(r.id)} (${esc(r.name)}) <span class="ml-1 text-xs px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500">${code[r.code]}</span></div>
+          <div class="text-xs text-[var(--muted-foreground)]">${esc(r.msg)}</div>
+          <div class="text-xs">Current decision: <b class="text-emerald-500">${label[r.decision]}</b></div>
+          <div class="flex flex-wrap gap-1.5">${alts}</div></div>`;
+      }).join('');
+    }
+
+    function refreshBlackoutUI() {
+      try {
+        const rawRows = parseCSV(activeBlackoutCSV);
+        const { accepted, quarantine, audit, review } = validateBlackoutData(rawRows);
+        const { recoveryList, timeline, summary } = runSimulation(accepted, currentPowerBudget);
+
+        blackoutState = { rawRows, accepted, quarantine, audit, review, recoveryList, timeline, summary };
+
+        const totalCount = rawRows.length;
+        const acceptedCount = accepted.length;
+        const quarantineCount = quarantine.length;
+        const acceptedPct = totalCount > 0 ? ((acceptedCount / totalCount) * 100).toFixed(1) : "0.0";
+        const quarantinePct = totalCount > 0 ? ((quarantineCount / totalCount) * 100).toFixed(1) : "0.0";
+
+        document.getElementById('metric-total-rows').innerHTML = `${totalCount} <span class="text-xs font-normal text-[var(--muted-foreground)]">rows</span>`;
+        document.getElementById('metric-accepted-count').innerHTML = `${acceptedCount} <span class="text-xs font-normal text-[var(--muted-foreground)]">of ${totalCount} valid</span>`;
+        document.getElementById('metric-accepted-pct').innerText = `${acceptedPct}%`;
+        document.getElementById('metric-quarantine-count').innerHTML = `${quarantineCount} <span class="text-xs font-normal text-[var(--muted-foreground)]">of ${totalCount} rows</span>`;
+        document.getElementById('metric-quarantine-pct').innerText = `${quarantinePct}%`;
+        document.getElementById('metric-health-score').innerText = `${acceptedPct}%`;
+        document.getElementById('metric-health-bar').style.width = `${acceptedPct}%`;
+
+        const reasonsContainer = document.getElementById('quarantine-reasons-cards');
+        if (quarantine.length === 0) {
+          reasonsContainer.innerHTML = '<div class="text-emerald-500 font-medium py-1">✓ No quarantined records in active dataset.</div>';
+        } else {
+          reasonsContainer.innerHTML = quarantine.map(q => `
+            <div class="p-2.5 rounded-lg bg-[var(--card)] border border-rose-500/30 flex items-start gap-2">
+              <span class="text-rose-500 font-bold mt-0.5">&bull;</span>
+              <div>
+                <div class="font-bold text-[var(--foreground)]">Row ${q.raw_idx}: ${q.service_id || 'UNKNOWN'} (${q.service_name || 'No Name'})</div>
+                <div class="text-xs text-rose-500 font-medium">${q.quarantine_reason}</div>
+              </div>
+            </div>
+          `).join('');
+        }
+
+        renderReviewQueue(rawRows, review);
+        document.getElementById('budget-badge').innerText = `${currentPowerBudget} kW`;
+        document.getElementById('budget-slider').value = currentPowerBudget;
+
+        [4, 8, 11, 15].forEach(kw => {
+          const btn = document.getElementById(`preset-btn-${kw}`);
+          if (!btn) return;
+          if (currentPowerBudget === kw) {
+            btn.className = "text-xs py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/40 text-amber-500 font-bold transition-all text-center";
+          } else {
+            btn.className = "text-xs py-1.5 rounded-lg bg-[var(--background)] border border-[var(--border)] hover:border-amber-500 hover:text-amber-500 font-medium transition-all text-center";
+          }
+        });
+
+        document.getElementById('kpi-restored-count').innerText = `${summary.restored_count} / ${summary.total_count}`;
+        const resPct = summary.total_count > 0 ? ((summary.restored_count / summary.total_count) * 100).toFixed(1) : "0.0";
+        document.getElementById('kpi-restored-pct').innerText = `${resPct}% operational`;
+        document.getElementById('kpi-used-kw').innerText = `${summary.power_used_kw.toFixed(1)} kW`;
+        document.getElementById('kpi-left-kw').innerText = `${summary.remaining_kw.toFixed(1)} kW`;
+
+        const unrestored = summary.total_count - summary.restored_count;
+        document.getElementById('kpi-unrestored-count').innerText = `${unrestored} services`;
+
+        const usedPct = currentPowerBudget > 0 ? (summary.power_used_kw / currentPowerBudget) * 100 : 0;
+        const idlePct = currentPowerBudget > 0 ? (summary.remaining_kw / currentPowerBudget) * 100 : 0;
+        document.getElementById('bar-used-power').style.width = `${usedPct}%`;
+        document.getElementById('bar-idle-power').style.width = `${idlePct}%`;
+        document.getElementById('power-distribution-label').innerText = `${summary.power_used_kw} kW used &bull; ${summary.remaining_kw} kW reserve`;
+
+        const timelineContainer = document.getElementById('dispatch-timeline');
+        if (timeline.length === 0) {
+          timelineContainer.innerHTML = '<div class="text-xs text-[var(--muted-foreground)] py-2">No services restored under current budget.</div>';
+        } else {
+          timelineContainer.innerHTML = timeline.map(t => `
+            <div class="p-2 rounded-lg bg-[var(--background)] border border-emerald-500/30 flex items-center justify-between text-xs">
+              <div class="flex items-center gap-2">
+                <span class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-500 font-bold flex items-center justify-center text-xs">${t.step}</span>
+                <div>
+                  <span class="font-bold text-[var(--foreground)]">${t.id}</span>
+                  <span class="text-xs text-[var(--muted-foreground)]">(${t.name})</span>
+                </div>
+              </div>
+              <div class="text-right">
+                <span class="font-semibold text-emerald-500">+${t.power} kW</span>
+                <div class="text-xs text-[var(--muted-foreground)]">Cumul: ${t.running_used} kW</div>
+              </div>
+            </div>
+          `).join('');
+        }
+
+        document.getElementById('tab-count-clean').innerText = accepted.length;
+        document.getElementById('tab-count-quarantine').innerText = quarantine.length;
+
+        document.getElementById('plan-table-body').innerHTML = recoveryList.map(r => {
+          let badgeClass = 'badge-waiting';
+          if (r.recovery_result === 'RESTORED') badgeClass = 'badge-restored';
+          else if (r.recovery_result === 'INSUFFICIENT_BACKUP_POWER') badgeClass = 'badge-insufficient';
+
+          return `
+            <tr class="hover:bg-[var(--border)]/10">
+              <td class="py-2 px-3 font-mono font-bold text-[var(--foreground)]">${r.service_id}</td>
+              <td class="py-2 px-3">${r.service_name}</td>
+              <td class="py-2 px-3"><span class="px-2 py-0.5 rounded bg-[var(--background)] font-medium">Rank ${r.criticality}</span></td>
+              <td class="py-2 px-3 font-semibold">${r.power_kw} kW</td>
+              <td class="py-2 px-3 font-mono font-bold text-sky-400">${r.priority_score}</td>
+              <td class="py-2 px-3 font-mono text-[var(--muted-foreground)]">${r.depends_on || '&mdash;'}</td>
+              <td class="py-2 px-3">
+                <span class="px-2 py-0.5 rounded-full text-xs font-semibold ${badgeClass}">${r.recovery_result}</span>
+              </td>
+            </tr>
+          `;
+        }).join('');
+
+        document.getElementById('clean-table-body').innerHTML = accepted.map(a => `
+          <tr class="hover:bg-[var(--border)]/10">
+            <td class="py-2 px-3 font-mono font-bold">${a.service_id}</td>
+            <td class="py-2 px-3">${a.service_name}</td>
+            <td class="py-2 px-3">${a.criticality}</td>
+            <td class="py-2 px-3 font-semibold">${a.power_kw} kW</td>
+            <td class="py-2 px-3 text-emerald-500 font-semibold">${a.status}</td>
+            <td class="py-2 px-3 font-mono text-[var(--muted-foreground)]">${a.depends_on || '&mdash;'}</td>
+            <td class="py-2 px-3 text-[var(--muted-foreground)]">${a.timestamp}</td>
+          </tr>
+        `).join('');
+
+        document.getElementById('quarantine-table-body').innerHTML = quarantine.map(q => `
+          <tr class="hover:bg-[var(--border)]/10">
+            <td class="py-2 px-3 font-mono font-bold text-rose-500">${q.service_id || 'UNKNOWN'}</td>
+            <td class="py-2 px-3">${q.service_name || '&mdash;'}</td>
+            <td class="py-2 px-3">${q.criticality || '&mdash;'}</td>
+            <td class="py-2 px-3">${q.power_kw || '&mdash;'}</td>
+            <td class="py-2 px-3 text-rose-500 font-medium">${q.quarantine_reason}</td>
+          </tr>
+        `).join('');
+
+        document.getElementById('audit-table-body').innerHTML = audit.map(a => `
+          <tr class="hover:bg-[var(--border)]/10">
+            <td class="py-2 px-3 font-mono font-semibold text-amber-500">${a.action}</td>
+            <td class="py-2 px-3">${a.details}</td>
+          </tr>
+        `).join('');
+
+        renderTopologySVG(accepted, recoveryList, quarantine);
+        if (typeof ccRefresh === 'function') ccRefresh();
+      } catch (err) {
+        console.error("Error refreshing Blackout UI:", err);
+      }
+    }
+
+    function setBudget(kw) {
+      currentPowerBudget = parseInt(kw, 10);
+      refreshBlackoutUI();
+    }
+
+    function loadDefaultBlackoutData() {
+      activeBlackoutCSV = DEFAULT_SERVICES_CSV; reviewDecisions = {};
+      document.getElementById('bs-file-label').innerText = "city_emergency_services.csv (10 records ingested)";
+      refreshBlackoutUI();
+      showToast("Demo service dataset reloaded");
+    }
+
+    function uploadBlackoutCSV(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        activeBlackoutCSV = e.target.result; reviewDecisions = {};
+        document.getElementById('bs-file-label').innerText = `${file.name} (Custom Upload)`;
+        refreshBlackoutUI();
+        showToast(`Uploaded ${file.name}`);
+      };
+      reader.readAsText(file);
+      event.target.value = '';
+    }
+
+    function switchTab(tname) {
+      ['plan', 'clean', 'quarantine', 'audit'].forEach(t => {
+        const btn = document.getElementById(`tab-btn-${t}`);
+        const pnl = document.getElementById(`tab-panel-${t}`);
+        if (!btn || !pnl) return;
+        if (t === tname) {
+          btn.className = "tab-btn-active py-1 whitespace-nowrap";
+          pnl.classList.remove('hidden');
+        } else {
+          btn.className = "text-[var(--muted-foreground)] py-1 hover:text-[var(--foreground)] whitespace-nowrap";
+          pnl.classList.add('hidden');
+        }
+      });
+    }
+
+    function switchModule(mname) {
+      ['blackout', 'autoshield', 'command', 'pipeline', 'pitch'].forEach(m => {
+        const btn = document.getElementById(`nav-${m}`);
+        const sec = document.getElementById(`section-${m}`);
+        if (!btn || !sec) return;
+        if (m === mname) {
+          btn.className = "nav-btn-active px-3 py-1.5 rounded-lg transition-all whitespace-nowrap";
+          sec.classList.remove('hidden');
+        } else {
+          btn.className = "px-3 py-1.5 rounded-lg text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-all whitespace-nowrap";
+          sec.classList.add('hidden');
+        }
+      });
+      if (mname === 'command' && typeof ccRefresh === 'function') {
+        ccRefresh();
+      }
+    }
+
+    // ========================================================
+    // AUTOSHIELD ENGINE & DYNAMIC PROBLEM SCENARIOS
+    // ========================================================
+    const AUTOSHIELD_SCENARIOS = {
+      1: {
+        name: "Scenario 1: Attendance Dataset (Typo, Out-of-Range, Bad Date, Duplicate)",
+        csv: `student_id,attendance_pct,date
+S101,85,2026-10-29
+ S102 ,92,2026-10-29
+S103,ninety,2026-10-29
+S104,72,not-a-date
+S105,105,2026-10-29
+S106,91,2026-10-29
+S106,88,2026-10-29
+S107,67,2026-10-29`
+      },
+      2: {
+        name: "Scenario 2: Smart Grid Sensor Telemetry (Negative Voltage, Spike String, 999kV, Duplicate)",
+        csv: `sensor_id,voltage_v,frequency_hz,timestamp
+VOLT-01,230.4,50.01,2026-10-30 10:00:00
+ VOLT-02 ,229.8,49.98,2026-10-30 10:01:00
+VOLT-03,-48.5,50.00,2026-10-30 10:02:00
+VOLT-04,ERR_SPIKE,50.02,2026-10-30 10:03:00
+VOLT-05,9999.0,50.00,2026-10-30 10:04:00
+VOLT-06,231.2,50.03,2026-10-30 10:05:00
+VOLT-06,231.0,49.99,2026-10-30 10:06:00
+VOLT-07,230.1,65.50,2026-10-30 10:07:00`
+      },
+      3: {
+        name: "Scenario 3: Hospital ICU Vital Signs (420 bpm, Missing ID, SpO2 String, Negative)",
+        csv: `patient_id,heart_rate_bpm,spo2_pct,timestamp
+P-801,72,98,2026-10-30 12:00:00
+ P-802 ,80,99,2026-10-30 12:00:00
+P-803,420,96,2026-10-30 12:00:00
+P-804,68,ninety-nine,2026-10-30 12:00:00
+P-805,-15,97,2026-10-30 12:00:00
+,75,98,2026-10-30 12:00:00
+P-807,85,108,2026-10-30 12:00:00
+P-808,74,97,2026-10-30 12:00:00`
+      },
+      4: {
+        name: "Scenario 4: 100% Clean Verified Dataset (Zero Defects)",
+        csv: `sensor_id,voltage_v,power_factor,timestamp
+GRID-101,230.1,0.98,2026-10-30 12:00:00
+GRID-102,230.4,0.99,2026-10-30 12:01:00
+GRID-103,229.8,0.97,2026-10-30 12:02:00
+GRID-104,230.2,0.98,2026-10-30 12:03:00
+GRID-105,230.0,0.99,2026-10-30 12:04:00
+GRID-106,230.5,0.97,2026-10-30 12:05:00
+GRID-107,229.9,0.98,2026-10-30 12:06:00
+GRID-108,230.2,0.99,2026-10-30 12:07:00`
+      }
+    };
+
+    let activeAutoCSV = AUTOSHIELD_SCENARIOS[1].csv;
+    let currentAutoScenario = 1;
+    let autoAcceptedData = [];
+    let autoQuarantineData = [];
+    let autoAuditLog = [];
+
+    function switchAutoScenario(num) {
+      currentAutoScenario = num;
+      activeAutoCSV = AUTOSHIELD_SCENARIOS[num].csv;
+      document.getElementById('as-active-scenario-name').innerText = AUTOSHIELD_SCENARIOS[num].name;
+      const ta = document.getElementById('as-raw-textarea');
+      if (ta) ta.value = activeAutoCSV;
+
+      [1, 2, 3, 4].forEach(i => {
+        const btn = document.getElementById(`as-btn-scen-${i}`);
+        if (!btn) return;
+        if (i === num) {
+          btn.className = (i === 4)
+            ? "text-xs p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/40 text-emerald-500 font-bold text-left transition-all"
+            : "text-xs p-2 rounded-lg bg-amber-500/10 border border-amber-500/40 text-amber-500 font-bold text-left transition-all";
+        } else {
+          btn.className = "text-xs p-2 rounded-lg bg-[var(--card)] border border-[var(--border)] hover:border-amber-500 hover:text-amber-500 font-medium text-left transition-all";
+        }
+      });
+
+      executeAutoShieldPipeline();
+      showToast(`Switched to Scenario ${num}`);
+    }
+
+    function toggleAutoEditor() {
+      const wrap = document.getElementById('as-editor-wrap');
+      const ta = document.getElementById('as-raw-textarea');
+      if (!wrap || !ta) return;
+      if (wrap.classList.contains('hidden')) {
+        wrap.classList.remove('hidden');
+        ta.value = activeAutoCSV;
+      } else {
+        wrap.classList.add('hidden');
+      }
+    }
+
+    function applyAutoTextareaAndRun() {
+      const ta = document.getElementById('as-raw-textarea');
+      if (ta && ta.value.trim().length > 0) {
+        activeAutoCSV = ta.value.trim();
+        document.getElementById('as-active-scenario-name').innerText = "Custom Edited Data";
+        executeAutoShieldPipeline();
+        showToast("Applied custom raw CSV edits");
+      }
+    }
+
+    function uploadAutoShieldCSV(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        activeAutoCSV = e.target.result;
+        document.getElementById('as-active-scenario-name').innerText = `Uploaded: ${file.name}`;
+        const ta = document.getElementById('as-raw-textarea');
+        if (ta) ta.value = activeAutoCSV;
+        executeAutoShieldPipeline();
+        showToast(`Uploaded ${file.name} to AutoShield`);
+      };
+      reader.readAsText(file);
+      event.target.value = '';
+    }
+
+    function executeAutoShieldPipeline() {
+      try {
+        const rows = parseCSV(activeAutoCSV);
+        if (rows.length === 0) return;
+
+        const headers = Object.keys(rows[0] || {});
+        const idKey = headers.find(h => /id/i.test(h)) || headers[0];
+        const dateKey = headers.find(h => /date|time/i.test(h));
+        const metricKeys = headers.filter(h => h !== idKey && h !== dateKey);
+
+        let detectedIssuesCount = 0;
+        let repairsCount = 0;
+        const audit = [];
+        const quarantine = [];
+        const accepted = [];
+        const seenIds = new Set();
+
+        rows.forEach((origRow, idx) => {
+          const row = { ...origRow };
+          const rawLineNum = idx + 2;
+          let isQuarantined = false;
+          let quarantineReason = "";
+          let problemField = "";
+          let problemValue = "";
+
+          headers.forEach(col => {
+            if (row[col] && typeof row[col] === 'string') {
+              const rawVal = row[col];
+              const trimmed = rawVal.trim();
+              if (trimmed !== rawVal) {
+                repairsCount++;
+                detectedIssuesCount++;
+                audit.push({ action: 'TRIM_WHITESPACE', details: `Row ${rawLineNum} col ${col}: trimmed whitespace` });
+                row[col] = trimmed;
+              }
+            }
+          });
+
+          const idVal = row[idKey];
+          if (!idVal || idVal.length === 0) {
+            isQuarantined = true;
+            detectedIssuesCount++;
+            problemField = idKey;
+            problemValue = "(missing/empty)";
+            quarantineReason = "Missing mandatory primary identifier; violates audit traceability.";
+          } else if (seenIds.has(idVal.toUpperCase())) {
+            isQuarantined = true;
+            detectedIssuesCount++;
+            problemField = idKey;
+            problemValue = idVal;
+            quarantineReason = `Primary key collision: duplicate identifier '${idVal}' rejected.`;
+          } else {
+            seenIds.add(idVal.toUpperCase());
+          }
+
+          if (!isQuarantined && dateKey && row[dateKey]) {
+            const dtVal = row[dateKey];
+            if (isNaN(Date.parse(dtVal))) {
+              isQuarantined = true;
+              detectedIssuesCount++;
+              problemField = dateKey;
+              problemValue = dtVal;
+              quarantineReason = `Invalid timestamp format '${dtVal}'; fails ISO standard date validation.`;
+            }
+          }
+
+          if (!isQuarantined) {
+            for (let col of metricKeys) {
+              const rawVal = row[col];
+              const num = Number(rawVal);
+
+              if (isNaN(num) || rawVal === "") {
+                isQuarantined = true;
+                detectedIssuesCount++;
+                problemField = col;
+                problemValue = rawVal || "(blank)";
+                quarantineReason = `Non-numeric text '${rawVal}' cannot be safely converted to a number (zero-guess policy).`;
+                break;
+              }
+
+              if (/pct|percent|attendance/i.test(col)) {
+                if (num < 0 || num > 100) {
+                  isQuarantined = true;
+                  detectedIssuesCount++;
+                  problemField = col;
+                  problemValue = `${num}%`;
+                  quarantineReason = `Percentage value ${num}% is outside physical boundary (0 to 100%).`;
+                  break;
+                }
+              } else if (/voltage|volt/i.test(col)) {
+                if (num < 0) {
+                  isQuarantined = true;
+                  detectedIssuesCount++;
+                  problemField = col;
+                  problemValue = `${num}V`;
+                  quarantineReason = `Negative voltage (${num}V) detected in positive AC bus line.`;
+                  break;
+                } else if (num > 1000) {
+                  isQuarantined = true;
+                  detectedIssuesCount++;
+                  problemField = col;
+                  problemValue = `${num}V`;
+                  quarantineReason = `Voltage overload (${num}V) exceeds substation physical tolerance limits.`;
+                  break;
+                }
+              } else if (/freq/i.test(col)) {
+                if (num < 47 || num > 53) {
+                  isQuarantined = true;
+                  detectedIssuesCount++;
+                  problemField = col;
+                  problemValue = `${num} Hz`;
+                  quarantineReason = `Grid frequency (${num} Hz) is outside safe operational frequency band (47-53 Hz).`;
+                  break;
+                }
+              } else if (/heart_rate|bpm/i.test(col)) {
+                if (num < 20 || num > 300) {
+                  isQuarantined = true;
+                  detectedIssuesCount++;
+                  problemField = col;
+                  problemValue = `${num} bpm`;
+                  quarantineReason = `Heart rate (${num} bpm) is outside physiologically survivable bounds (20-300 bpm).`;
+                  break;
+                }
+              } else if (/spo2/i.test(col)) {
+                if (num < 40 || num > 100) {
+                  isQuarantined = true;
+                  detectedIssuesCount++;
+                  problemField = col;
+                  problemValue = `${num}%`;
+                  quarantineReason = `SpO2 reading (${num}%) exceeds maximum 100% hemoglobin saturation.`;
+                  break;
+                }
+              } else {
+                if (num < 0) {
+                  isQuarantined = true;
+                  detectedIssuesCount++;
+                  problemField = col;
+                  problemValue = `${num}`;
+                  quarantineReason = `Negative metric value (${num}) rejected by safety schema.`;
+                  break;
+                }
+              }
+
+              row[col] = num;
+            }
+          }
+
+          if (isQuarantined) {
+            quarantine.push({
+              ...origRow,
+              raw_line: rawLineNum,
+              record_id: idVal || `Row ${rawLineNum}`,
+              faulty_field: problemField,
+              problem_value: problemValue,
+              quarantine_reason: quarantineReason
+            });
+            audit.push({ action: 'QUARANTINE_RECORD', details: `Row ${rawLineNum} (${idVal || 'No ID'}): ${quarantineReason}` });
+          } else {
+            accepted.push(row);
+          }
+        });
+
+        autoAcceptedData = accepted;
+        autoQuarantineData = quarantine;
+        autoAuditLog = audit;
+
+        document.getElementById('as-raw-rows').innerText = rows.length;
+        document.getElementById('as-raw-rows-sub').innerText = `${headers.length} columns parsed`;
+        document.getElementById('as-detected-issues').innerText = detectedIssuesCount;
+        document.getElementById('as-detected-sub').innerText = `${detectedIssuesCount} problems isolated/repaired`;
+        document.getElementById('as-repairs-count').innerText = repairsCount;
+        document.getElementById('as-repairs-sub').innerText = `${repairsCount} whitespace fields trimmed`;
+        document.getElementById('as-quarantined-count').innerText = quarantine.length;
+        document.getElementById('as-accepted-badge').innerText = `${accepted.length} valid`;
+        document.getElementById('as-quarantine-badge').innerText = `${quarantine.length} isolated`;
+
+        const banner = document.getElementById('as-verification-banner');
+        const icon = document.getElementById('as-gate-icon');
+        const msg = document.getElementById('as-gate-message');
+        const stat = document.getElementById('as-gate-status');
+
+        if (quarantine.length === 0) {
+          banner.className = "p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-semibold";
+          icon.innerText = "✓";
+          msg.innerText = "100% Data Verification Passed: Zero anomalies detected. Dataset certified for operational use.";
+          stat.innerText = `STATUS: CERTIFIED (${accepted.length}/${rows.length} Clean)`;
+        } else {
+          banner.className = "p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-semibold";
+          icon.innerText = "🛡️";
+          msg.innerText = `Verification Gate Active: ${repairsCount} safe repairs applied; ${quarantine.length} corrupted records safely isolated.`;
+          stat.innerText = `STATUS: PROTECTED (${accepted.length} Clean &bull; ${quarantine.length} Quarantined)`;
+        }
+
+        const thead = document.getElementById('as-accepted-thead');
+        thead.innerHTML = `
+          <tr class="border-b border-[var(--border)] text-[var(--muted-foreground)]">
+            ${headers.map(h => `<th class="py-1.5 px-2">${h}</th>`).join('')}
+          </tr>
+        `;
+
+        const tbodyAccepted = document.getElementById('as-accepted-table');
+        if (accepted.length === 0) {
+          tbodyAccepted.innerHTML = `<tr><td colspan="${headers.length}" class="py-3 px-2 text-center text-[var(--muted-foreground)]">All rows quarantined. No clean records accepted.</td></tr>`;
+        } else {
+          tbodyAccepted.innerHTML = accepted.map(a => `
+            <tr class="hover:bg-[var(--border)]/10">
+              ${headers.map((h, i) => {
+                const val = a[h];
+                const isId = (i === 0);
+                const isMetric = typeof val === 'number';
+                const cls = isId ? 'font-mono font-bold text-[var(--foreground)]' : (isMetric ? 'text-emerald-500 font-semibold' : 'text-[var(--muted-foreground)]');
+                return `<td class="py-1.5 px-2 ${cls}">${val !== undefined ? val : ''}</td>`;
+              }).join('')}
+            </tr>
+          `).join('');
+        }
+
+        const tbodyQuarantine = document.getElementById('as-quarantine-table');
+        if (quarantine.length === 0) {
+          tbodyQuarantine.innerHTML = `<tr><td colspan="4" class="py-3 px-2 text-center text-emerald-500 font-medium">✓ Zero records quarantined. All input rows are valid.</td></tr>`;
+        } else {
+          tbodyQuarantine.innerHTML = quarantine.map(q => `
+            <tr class="hover:bg-[var(--border)]/10">
+              <td class="py-1.5 px-2 font-mono font-bold text-rose-500">${q.record_id}</td>
+              <td class="py-1.5 px-2 font-mono text-[var(--muted-foreground)]">${q.faulty_field}</td>
+              <td class="py-1.5 px-2">
+                <span class="px-2 py-0.5 rounded bg-rose-500/20 text-rose-500 font-mono font-bold text-xs inline-block">
+                  ${q.problem_value}
+                </span>
+              </td>
+              <td class="py-1.5 px-2 text-rose-500 font-medium">${q.quarantine_reason}</td>
+            </tr>
+          `).join('');
+        }
+      } catch (err) {
+        console.error("Error executing AutoShield pipeline:", err);
+      }
+    }
+
+    function triggerDownload(content, filename, type) {
+      try {
+        const blob = new Blob([content], { type });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        showToast(`Downloaded ${filename}`);
+      } catch (e) {
+        console.error("Download failed:", e);
+        showToast("Download blocked by browser sandbox", false);
+      }
+    }
+
+    function downloadAutoAcceptedCSV() {
+      if (!autoAcceptedData || autoAcceptedData.length === 0) {
+        showToast("No clean records to export", false);
+        return;
+      }
+      const headers = Object.keys(autoAcceptedData[0]);
+      const lines = [headers.join(',')];
+      autoAcceptedData.forEach(r => {
+        lines.push(headers.map(h => `"${r[h] !== undefined ? r[h] : ''}"`).join(','));
+      });
+      triggerDownload(lines.join('\n'), 'autoshield_accepted_clean.csv', 'text/csv');
+    }
+
+    function downloadAutoQuarantineCSV() {
+      if (!autoQuarantineData || autoQuarantineData.length === 0) {
+        showToast("No quarantined records to export", false);
+        return;
+      }
+      const headers = ["record_id", "faulty_field", "problem_value", "quarantine_reason"];
+      const lines = [headers.join(',')];
+      autoQuarantineData.forEach(q => {
+        lines.push([`"${q.record_id}"`, `"${q.faulty_field}"`, `"${q.problem_value}"`, `"${q.quarantine_reason}"`].join(','));
+      });
+      triggerDownload(lines.join('\n'), 'autoshield_quarantined_proofs.csv', 'text/csv');
+    }
+
+    function downloadCleanCSV() {
+      if (!blackoutState || !blackoutState.accepted || blackoutState.accepted.length === 0) {
+        showToast("No clean blackout services to export", false);
+        return;
+      }
+      const headers = ["service_id", "service_name", "criticality", "power_kw", "status", "depends_on", "timestamp", "facility_type", "patients"];
+      const lines = [headers.join(',')];
+      blackoutState.accepted.forEach(r => {
+        lines.push(headers.map(h => `"${r[h]}"`).join(','));
+      });
+      triggerDownload(lines.join('\n'), 'blackoutshield_clean.csv', 'text/csv');
+    }
+
+    function downloadQuarantineCSV() {
+      if (!blackoutState || !blackoutState.quarantine || blackoutState.quarantine.length === 0) {
+        showToast("No quarantined blackout records to export", false);
+        return;
+      }
+      const headers = ["service_id", "service_name", "criticality", "power_kw", "quarantine_reason"];
+      const lines = [headers.join(',')];
+      blackoutState.quarantine.forEach(r => {
+        lines.push(headers.map(h => `"${r[h] || ''}"`).join(','));
+      });
+      triggerDownload(lines.join('\n'), 'blackoutshield_quarantine.csv', 'text/csv');
+    }
+
+    function downloadAuditJSON() {
+      if (!blackoutState || !blackoutState.audit) {
+        showToast("No audit ledger to export", false);
+        return;
+      }
+      triggerDownload(JSON.stringify(blackoutState.audit, null, 2), 'blackoutshield_audit.json', 'application/json');
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      refreshBlackoutUI();
+      executeAutoShieldPipeline();
+    });
+  </script>
+  <script id="trustgrid-script">
+(function(){
+'use strict';
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const SAMPLES=[
+`service_id,service_name,facility_type,criticality,power_kw,patients,status,depends_on,timestamp
+PWR,Backup Power Controller,POWER,5,1,,ONLINE,,2026-10-30 09:00:00
+PUMP1,North Pumping Station,WATER,5,2,,ONLINE,PWR,2026-10-30 09:01:00
+PUMP2,East Pumping Station,WATER,5,2,,ONLINE,PWR,2026-10-30 09:02:00
+HOSP1,City General Hospital,HOSPITAL,5,3,320,ONLINE,PWR;PUMP1,2026-10-30 09:03:00
+HOSP2,St Mary Hospital,HOSPITAL,5,3,0,ONLINE,PWR;PUMP1,2026-10-30 09:04:00
+HOSP3,Riverside Hospital,HOSPITAL,3,5,140,ONLINE,PWR;PUMP2,2026-10-30 09:05:00
+HOSP1B,City General Hosp.,HOSPITAL,5,3,320,ONLINE,PWR;PUMP1,2026-10-30 09:06:00
+TELCO,Telecom Exchange,TELECOM,4,2,,ONLINE,PWR,2026-10-30 09:07:00
+TRAFFIC,Traffic Signal Hub,TRAFFIC,3,2,,ONLINE,PWR,2026-10-30 09:08:00
+CAMERA,Security Camera,SECURITY,high,1,,ONLINE,PWR,not-a-date`,
+`id,name,category,priority,kw,beds,state,requires,time
+G1,Grid Controller,POWER,5,2,,ONLINE,,2026-11-01 08:00
+W1,Central Water Works,WATER,5,4,,ONLINE,G1,2026-11-01 08:01
+W2,Hillside Pump,WATER,5,3,,ONLINE,G1,2026-11-01 08:02
+S1,Town Hall Shelter,SHELTER,4,2,500,ONLINE,G1;W1,2026-11-01 08:03
+S2,Stadium Shelter,SHELTER,4,2,0,ONLINE,G1;W2,2026-11-01 08:04
+S3,School Shelter,SHELTER,3,4,120,ONLINE,G1;W2,2026-11-01 08:05
+S1X,Town Hall Shelter,SHELTER,4,2,500,ONLINE,G1;W1,2026-11-01 08:06
+RADIO,Radio Mast,TELECOM,3,1,,ONLINE,G1,2026-11-01 08:07
+PHARM,Pharmacy Fridge,HEALTH,5,2,,ONLINE,GHOST,2026-11-01 08:08`,
+`service_id,"service_name",facility_type,criticality,power_kw,patients,status,depends_on,timestamp
+PWR,"Backup Power, Main",POWER,5,2,,online,,2026-10-30 09:00
+PUMP,"Pumping Station, North",WATER,5,3,,ONLINE,PWR,2026-10-30 09:01
+H1,"Apollo Clinic, East",HOSPITAL,5,3,210,ONLINE,PWR;PUMP,2026-10-30 09:02
+H2,"Apollo Clinic East",HOSPITAL,5,3,210,ONLINE,PWR;PUMP,2026-10-30 09:03
+H3,"Lakeview Hospital",HOSPITAL,5,3,95,ONLINE,PWR;PUMP,2026-10-30 09:04
+H4,"Hilltop Hospital",HOSPITAL,3,5,60,ONLINE,PWR;PUMP,2026-10-30 09:05
+H5,"Metro Hospital",HOSPITAL,5,3,0,ONLINE,PWR;PUMP,2026-10-30 09:06
+LIGHT,"Street Lights",TRAFFIC,2,2,,ONLINE,PWR,2026-10-30 09:07`];
+let dec={},budget=8;
+
+function parse(t){const rows=[];let r=[],c='',q=false;for(const ch of t.replace(/\r/g,'')+'\n'){if(q){if(ch=='"')q=false;else c+=ch}else if(ch=='"')q=true;else if(ch==','){r.push(c.trim());c=''}else if(ch=='\n'){r.push(c.trim());if(r.some(x=>x))rows.push(r);r=[];c=''}else c+=ch}return rows}
+function load(t){const R=parse(t);if(!R.length)return[];const h=R.shift().map(x=>x.toLowerCase());const f=re=>h.findIndex(x=>re.test(x));
+ const ix={id:f(/^(service_?)?id$/),name:f(/name/),type:f(/type|categ/),crit:f(/crit|prior/),pw:f(/power|kw/),cnt:f(/patient|bed|people|occup/),st:f(/status|state/),dep:f(/depend|requir/),ts:f(/time|date/)};
+ const g=(r,k)=>ix[k]<0?'':(r[ix[k]]??'');
+ return R.map((r,i)=>{const name=g(r,'name');let type=g(r,'type').toUpperCase();
+  if(!type||type==='OTHER'){const n=name.toLowerCase();type=/hosp|clinic/.test(n)?'HOSPITAL':/pump|water/.test(n)?'WATER':/power|generator/.test(n)?'POWER':/telecom|exchange|mast/.test(n)?'TELECOM':/traffic|signal/.test(n)?'TRAFFIC':/shelter/.test(n)?'SHELTER':'OTHER'}
+  return{line:i+2,id:g(r,'id').toUpperCase(),name,type,crit:g(r,'crit'),pw:g(r,'pw'),cnt:g(r,'cnt'),st:g(r,'st').toUpperCase(),deps:g(r,'dep').toUpperCase().split(/[;|,\s]+/).filter(Boolean),ts:g(r,'ts'),hasTs:ix.ts>=0}})}
+const med=a=>{a=a.slice().sort((x,y)=>x-y);return a.length?a[a.length>>1]:null};
+const toks=n=>new Set((n||'').toLowerCase().replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(Boolean).map(t=>t.slice(0,4)));
+const jac=(a,b)=>{const i=[...a].filter(x=>b.has(x)).length;return i/(a.size+b.size-i||1)};
+
+function pipeline(raw,D){
+ const hard=[],good=[],seen=new Set();
+ raw.forEach(r=>{let why=null;const c=+r.crit,p=+r.pw;
+  if(!r.id)why='Missing id';else if(seen.has(r.id))why='Duplicate id '+r.id;
+  else if(r.crit===''||!Number.isInteger(c)||c<1||c>5)why='criticality “'+r.crit+'” is not an integer 1–5';
+  else if(!(p>0))why='power_kw “'+r.pw+'” is not a positive number';
+  else if(r.cnt!==''&&!(+r.cnt>=0))why='count “'+r.cnt+'” is not numeric';
+  else if(r.st&&r.st!=='ONLINE'&&r.st!=='OFFLINE')why='status “'+r.st+'” invalid';
+  else if(r.hasTs&&isNaN(Date.parse(r.ts)))why='timestamp “'+r.ts+'” unparseable';
+  if(r.id)seen.add(r.id);
+  if(why)hard.push({r,why});else good.push({...r,c,p,n:r.cnt===''?null:+r.cnt,orig:{c,p,n:r.cnt===''?null:+r.cnt}})});
+ const flags=[],alias={},dropped=[];
+ good.forEach((r,i)=>{const peers=good.filter(o=>o!==r&&o.type===r.type);
+  if(r.n===0){const pos=peers.map(o=>o.n).filter(v=>v>0);if(pos.length)flags.push({r,code:'ZERO_COUNT',trust:35,def:'fix',opts:['fix','keep','drop'],fixVal:med(pos),msg:`Reports 0, but ${pos.length} peer ${r.type.toLowerCase()}(s) have a median of ${med(pos)}. Valid format, implausible value.`})}
+  if(peers.length>=2){const mc=med(peers.map(o=>o.c)),mp=med(peers.map(o=>o.p)),od=Math.abs(r.c-mc)+Math.abs(r.p-mp),sd=Math.abs(r.p-mc)+Math.abs(r.c-mp);
+   if(od>=2&&sd<=od/2&&r.p<=5)flags.push({r,code:'SWAPPED_COLUMNS',trust:40,def:'fix',opts:['fix','keep','drop'],msg:`Peers sit at criticality ${mc} / ${mp} kW; this row has ${r.c} / ${r.p}. Swapped (${r.p} / ${r.c}) fits peers (distance ${od} → ${sd}).`});
+   else if(Math.abs(r.c-mc)>=2)flags.push({r,code:'PROFILE_OUTLIER',trust:65,def:'keep',opts:['keep','drop'],msg:`Criticality ${r.c} differs from the peer median ${mc}, but a swap does not explain it.`})}
+  for(let j=0;j<i;j++){const o=good[j];if(o.type===r.type&&alias[o.id]===undefined&&o.p===r.p&&jac(toks(o.name),toks(r.name))>=.6){flags.push({r,code:'POSSIBLE_DUPLICATE',trust:45,def:'drop',opts:['drop','keep'],other:o.id,msg:`Same type, same kW and near-identical name as ${o.id}. Merging avoids double-counting power; keep it if this is a real twin site.`});break}}});
+ flags.forEach(f=>{const d=D[f.r.id]||f.def;f.dec=d;
+  if(d==='fix'&&f.code==='ZERO_COUNT'){f.r.n=f.fixVal;f.r.note='count assumed'}
+  if(d==='fix'&&f.code==='SWAPPED_COLUMNS'){[f.r.c,f.r.p]=[f.r.p,f.r.c];f.r.note='columns un-swapped'}
+  if(d==='drop'){dropped.push({r:f.r,why:f.code+' → dropped (reversible)'});f.r.out=true;if(f.other)alias[f.r.id]=f.other}});
+ const live=good.filter(r=>!r.out).map(r=>({...r,deps:[...new Set(r.deps.map(d=>alias[d]||d))]}));
+ return{hard,good,flags,dropped,live,plan:plan(live,budget)}}
+
+function plan(live,B){
+ const by={};live.forEach(s=>by[s.id]=s);const restored=new Set(),order=[];let used=0;
+ const hasDep=new Set();live.forEach(s=>s.deps.forEach(d=>hasDep.add(d)));
+ const clo=(id,path)=>{if(restored.has(id))return[];if(path.includes(id)||!by[id])return null;const out=[];
+  for(const d of by[id].deps){const c=clo(d,[...path,id]);if(c===null)return null;c.forEach(x=>{if(!out.includes(x))out.push(x)})}out.push(id);return out};
+ let left=new Set(live.map(s=>s.id));
+ while(left.size){const pick=leaf=>{let b=null;left.forEach(id=>{if(leaf&&hasDep.has(id))return;const c=clo(id,[]);if(!c||!c.length)return;
+   const cost=c.reduce((t,x)=>t+by[x].p,0);if(cost>B-used+1e-9)return;const s=by[id],n=s.n||0;
+   if(!b||s.c>b.s.c||(s.c===b.s.c&&(n>b.n||(n===b.n&&(cost<b.cost||(cost===b.cost&&id<b.id))))))b={id,c,cost,s,n}});return b};
+  const b=pick(true)||pick(false);if(!b)break;
+  b.c.forEach(x=>{restored.add(x);left.delete(x);used+=by[x].p;order.push({id:x,why:x===b.id?'goal':'needed by '+b.id,used})})}
+ const status={};live.forEach(s=>{if(restored.has(s.id))status[s.id]=['RESTORED',''];else{
+  const miss=s.deps.filter(d=>!by[d]);const dark=s.deps.filter(d=>by[d]&&!restored.has(d));
+  status[s.id]=miss.length?['BLOCKED','depends on missing/quarantined '+miss.join(', ')]:dark.length?['BLOCKED','dark dependency '+dark.join(', ')]:['NO POWER','budget exhausted']}});
+ const served=live.filter(s=>restored.has(s.id)).reduce((t,s)=>t+(s.n||0),0);
+ return{restored,order,used,status,served,by}}
+
+function naive(good){const s=good.slice().sort((a,b)=>b.orig.c-a.orig.c||a.orig.p-b.orig.p);let u=0;const on=new Set();
+ s.forEach(r=>{if(u+r.orig.p<=budget){u+=r.orig.p;on.add(r.id)}});
+ const ok=s.filter(r=>on.has(r.id)&&r.deps.every(d=>on.has(d)));return{powered:on.size,useful:ok.length,wasted:[...on].filter(id=>!ok.find(r=>r.id===id))}}
+
+function run(){
+ $('tg-budv').textContent=budget+' kW';
+ const raw=load($('tg-csv').value),R=pipeline(raw,dec),P=R.plan,N=naive(R.good);
+ const live=R.live.length,tot=raw.length;const trusted=R.good.length-R.flags.length;
+ $('tg-kpis').innerHTML=[
+  [`${P.restored.size}/${live}`,'services restored (all deps lit)','ok'],[P.served,'patients / people served','ok'],[`${P.used}/${budget} kW`,'backup power used',''],
+  [`${R.hard.length}`,'hard rejects (format)','bad'],[`${R.flags.length}`,'plausible-but-wrong suspects','warn'],[`${Math.round(100*trusted/Math.max(tot,1))}%`,'records fully trusted','acc']
+ ].map(k=>`<div class="kpi"><b class="${k[2]}">${k[0]}</b><span>${k[1]}</span></div>`).join('');
+ // trust table with regret
+ const reg=f=>{const alt=f.dec==='keep'?(f.def==='keep'?f.opts.find(o=>o!=='keep'):f.def):'keep';const q=pipeline(raw,{...dec,[f.r.id]:alt}).plan;
+  const dr=q.restored.size-P.restored.size,dp=q.served-P.served;return`${alt}: ${dr>=0?'+':''}${dr} svc, ${dp>=0?'+':''}${dp} people`};
+ $('tg-trust').innerHTML=R.flags.length?`<tr><th>Record</th><th>Suspicion</th><th>Evidence</th><th>Trust</th><th>Decision</th><th>If wrong</th></tr>`+R.flags.map(f=>`<tr><td><b>${esc(f.r.id)}</b><br><span class="mut">line ${f.r.line}</span></td><td><span class="tag warn">${f.code}</span></td><td>${esc(f.msg)}</td>
+  <td><div class="bar"><i style="width:${f.trust}%;background:var(--warn)"></i></div>${f.trust}</td>
+  <td>${f.opts.map(o=>`<button class="${f.dec===o?'on':''}" data-i="${esc(f.r.id)}" data-o="${o}" onclick="TG.setDec(this.dataset.i,this.dataset.o)">${o}</button>`).join(' ')}</td><td class="note">${reg(f)}</td></tr>`).join(''):'<tr><td class="mut">No plausibility suspects found.</td></tr>';
+ // plan
+ const ord=new Map(P.order.map((o,i)=>[o.id,{...o,i}]));
+ const rows=R.live.slice().sort((a,b)=>(ord.has(a.id)?ord.get(a.id).i:999)-(ord.has(b.id)?ord.get(b.id).i:999)||b.c-a.c);
+ $('tg-plan').innerHTML=`<tr><th>#</th><th>Service</th><th>Crit</th><th>kW</th><th>People</th><th>Result</th></tr>`+rows.map(s=>{const st=P.status[s.id],o=ord.get(s.id);
+  return`<tr><td>${o?o.i+1:'–'}</td><td><b>${esc(s.id)}</b> <span class="mut">${esc(s.name)}</span>${s.note?`<br><span class="tag warn">${s.note}</span>`:''}<br><span class="mut">needs: ${s.deps.join(', ')||'—'}</span></td><td>${s.c}</td><td>${s.p}</td><td>${s.n??'–'}</td>
+  <td><span class="tag ${st[0]==='RESTORED'?'ok':st[0]==='BLOCKED'?'bad':'warn'}">${st[0]}</span><div class="note">${o?o.why:st[1]}</div></td></tr>`}).join('');
+ $('tg-hard').innerHTML=R.hard.length?R.hard.map(h=>`<tr><td><b>${esc(h.r.id||'(blank)')}</b><br><span class="mut">line ${h.r.line}</span></td><td class="bad">${esc(h.why)}</td></tr>`).join(''):'<tr><td class="mut">None.</td></tr>';
+ $('tg-naive').innerHTML=`A naive planner that trusts the raw file and ranks by criticality powers <b>${N.powered}</b> services, but only <b class="bad">${N.useful}</b> actually work${N.wasted.length?` — ${esc(N.wasted.join(', '))} sit powered with a dark dependency`:''}. TrustGrid powers bundles (service + every dark dependency) so no kilowatt is wasted.`}
+function preset(i){dec={};$('tg-csv').value=SAMPLES[i];[0,1,2].forEach(k=>$('tg-p'+k).classList.toggle('on',k===i));run()}
+window.TG={preset,setDec:(i,o)=>{dec[i]=o;run()},setBudget:v=>{budget=+v;run()},input:()=>{dec={};run()},run};
+preset(0);
+// non-invasive hook: add the new tab to the existing switchModule without editing it
+const _orig=window.switchModule;
+window.switchModule=function(m){
+  _orig.apply(this,arguments);
+  const sec=document.getElementById('section-trustgrid'),btn=document.getElementById('nav-trustgrid');
+  if(!sec||!btn)return;
+  if(m==='trustgrid'){sec.classList.remove('hidden');btn.className='nav-btn-active px-3 py-1.5 rounded-lg transition-all whitespace-nowrap';}
+  else{sec.classList.add('hidden');btn.className='px-3 py-1.5 rounded-lg text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-all whitespace-nowrap';}
+};
+})();
+  </script>
+</body>
+</html>
