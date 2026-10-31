@@ -1,0 +1,7 @@
+service_id,service_name,criticality,power_kw,status,depends_on,timestamp
+PWR,Backup Power Controller,5,1,ONLINE,,2026-10-29 09:00:00
+CLINIC,First Aid Clinic,5,3,ONLINE,PWR,2026-10-29 09:01:00
+COLD,Medicine Refrigerator,5,2,ONLINE,PWR,2026-10-29 09:02:00
+ACCESS,Access Control,4,2,ONLINE,PWR,2026-10-29 09:03:00
+WIFI,Campus WiFi,3,4,ONLINE,PWR,2026-10-29 09:04:00
+LIGHTS,Common Area Lights,2,3,ONLINE,PWR,2026-10-29 09:05:00

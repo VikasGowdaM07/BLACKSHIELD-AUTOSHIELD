@@ -1,0 +1,13 @@
+service_id,service_name,criticality,power_kw,status,depends_on,timestamp
+PWR,Backup Power Controller,5,1,ONLINE,,2026-10-29 09:00:00
+CLINIC,First Aid Clinic,5,3,ONLINE,PWR,2026-10-29 09:01:00
+COLD,Medicine Refrigerator,5,abc,ONLINE,PWR,2026-10-29 09:02:00
+ACCESS,Access Control,7,2,ONLINE,PWR,2026-10-29 09:03:00
+WIFI,Campus WiFi,3,4,MAYBE,PWR,2026-10-29 09:04:00
+LIGHTS,Common Area Lights,2,3,ONLINE,COLD,2026-10-29 09:05:00
+PUMP,Water Pump,4,2,ONLINE,GHOST,2026-10-29 09:06:00
+SELF,Self Loop,3,1,ONLINE,SELF,2026-10-29 09:07:00
+ gate ,Main Gate,3,1,online,pwr,2026-10-29 09:08:00
+CLINIC,First Aid Clinic duplicate,5,3,ONLINE,PWR,2026-10-29 09:09:00
+FAN,Ventilation Fan,2.5,2,ONLINE,PWR,2026-10-29 09:10:00
+HEATER,Heater,2,-3,ONLINE,PWR,2026-10-29 09:11:00

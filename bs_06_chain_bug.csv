@@ -1,0 +1,5 @@
+service_id,service_name,criticality,power_kw,status,depends_on,timestamp
+A,Root,5,1,ONLINE,,2026-10-29 09:00:00
+B,Middle (invalid criticality),0,1,ONLINE,A,2026-10-29 09:01:00
+C,Depends on B,3,1,ONLINE,B,2026-10-29 09:02:00
+D,Depends on C,3,1,ONLINE,C,2026-10-29 09:03:00

@@ -1,0 +1,4 @@
+service_id,service_name,criticality,power_kw,status,depends_on,timestamp
+PWR,Backup Power Controller,5,1,ONLINE,,2026-10-29 09:00:00
+X,Service X,4,1,ONLINE,Y,2026-10-29 09:01:00
+Y,Service Y,4,1,ONLINE,X,2026-10-29 09:02:00

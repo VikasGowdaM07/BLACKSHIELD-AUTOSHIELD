@@ -1,0 +1,3 @@
+service_id,service_name,criticality,power_kw,status,depends_on,timestamp
+A,Bad Status,3,2,BROKEN,,2026-10-29 09:00:00
+B,Bad Date,3,2,ONLINE,,not-a-date
