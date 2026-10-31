@@ -1,0 +1,7 @@
+service_id,service_name,facility_type,criticality,power_kw,patients,status,depends_on,timestamp
+PWR,Backup Power Controller,POWER,5,2,,ONLINE,,2026-10-30 09:00:00
+ONLY1,Only Hospital In Town,HOSPITAL,5,3,0,ONLINE,PWR,2026-10-30 09:01:00
+FIRE1,Fire Control Room,OTHER,4,2,,ONLINE,PWR,2026-10-30 09:02:00
+BIGGEN,Industrial Park Feeder,POWER,2,50,,ONLINE,PWR,2026-10-30 09:03:00
+OFF1,Offline Substation,POWER,3,1,,OFFLINE,PWR,2026-10-30 09:04:00
+NOCNT,Clinic With Blank Count,HOSPITAL,5,3,,ONLINE,PWR,2026-10-30 09:05:00

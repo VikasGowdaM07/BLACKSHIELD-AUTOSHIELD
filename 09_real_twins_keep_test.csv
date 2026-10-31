@@ -1,0 +1,6 @@
+service_id,service_name,facility_type,criticality,power_kw,patients,status,depends_on,timestamp
+PWR,Backup Power Controller,POWER,5,1,,ONLINE,,2026-10-30 09:00:00
+PUMP1,North Pumping Station,WATER,5,2,,ONLINE,PWR,2026-10-30 09:01:00
+HA,Community Hospital Unit A,HOSPITAL,5,3,200,ONLINE,PWR;PUMP1,2026-10-30 09:02:00
+HB,Community Hospital Unit B,HOSPITAL,5,3,180,ONLINE,PWR;PUMP1,2026-10-30 09:03:00
+HC,Regional Medical Centre,HOSPITAL,5,3,400,ONLINE,PWR;PUMP1,2026-10-30 09:04:00
