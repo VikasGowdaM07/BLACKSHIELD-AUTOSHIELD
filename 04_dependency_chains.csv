@@ -1,0 +1,11 @@
+service_id,service_name,facility_type,criticality,power_kw,patients,status,depends_on,timestamp
+PWR,Backup Power Controller,POWER,5,1,,ONLINE,,2026-10-30 09:00:00
+SUB,Substation Feeder,POWER,5,1,,ONLINE,PWR,2026-10-30 09:01:00
+PUMPA,Main Pumping Station,WATER,5,2,,ONLINE,SUB,2026-10-30 09:02:00
+TREAT,Water Treatment Plant,WATER,5,2,,ONLINE,PUMPA,2026-10-30 09:03:00
+H1,City General Hospital,HOSPITAL,5,3,300,ONLINE,PWR;TREAT,2026-10-30 09:04:00
+H2,Riverside Hospital,HOSPITAL,5,3,180,ONLINE,PWR;TREAT,2026-10-30 09:05:00
+H3,Lakeview Hospital,HOSPITAL,5,3,240,ONLINE,PWR;GHOST,2026-10-30 09:06:00
+LOOPA,Loop Service A,TELECOM,4,1,,ONLINE,LOOPB,2026-10-30 09:07:00
+LOOPB,Loop Service B,TELECOM,4,1,,ONLINE,LOOPA,2026-10-30 09:08:00
+SELF,Self Dependent Hub,TRAFFIC,3,1,,ONLINE,SELF,2026-10-30 09:09:00
